@@ -7,8 +7,8 @@
       "home": "~/.jv/homes/claude-main",
       "ceilingPct": 90,
       "models": [
-        { "id": "claude-opus-5-5", "label": "Opus", "efforts": ["low", "medium", "high", "max"] },
-        { "id": "claude-fable-5-1", "label": "Fable", "efforts": ["low", "medium", "high", "max"] },
+        { "id": "claude-opus-5-5", "label": "Opus", "efforts": ["low", "medium", "high", "xhigh", "max"] },
+        { "id": "claude-fable-5-1", "label": "Fable", "efforts": ["low", "medium", "high", "xhigh", "max"] },
         { "id": "claude-sonnet-5-5", "label": "Sonnet", "efforts": ["low", "medium", "high"] },
         { "id": "claude-haiku-5-5", "label": "Haiku", "efforts": ["low", "medium"] }
       ]
@@ -25,7 +25,7 @@
       "kind": "codex-subscription",
       "home": "~/.jv/homes/codex",
       "ceilingPct": 90,
-      "models": [{ "id": "gpt-6.1-sol", "label": "GPT", "efforts": ["low", "medium", "high", "xhigh"] }]
+      "models": [{ "id": "gpt-6-astra", "label": "GPT", "efforts": ["low", "medium", "high", "xhigh"] }]
     },
     {
       "name": "glm",

@@ -603,12 +603,22 @@ const checkModelDescriptions: Check = async (ctx) => {
   if (!described) {
     return [warn('model-descriptions', `the router policy (${file}) has no "## model descriptions" section yet`, 'run jv update with a package whose router policy is written')];
   }
-  const missing = allModelIds(c).filter((id) => !described.has(id));
-  return [
-    missing.length === 0
-      ? ok('model-descriptions', `every model in providers.json has a description line in ${file}`)
-      : warn('model-descriptions', `no description line in the router policy for: ${missing.join(', ')}`, `add "<model id>: <text>" lines to "## model descriptions" in the router policy, or remove the models from ${c.file}`),
-  ];
+  const ids = allModelIds(c);
+  const missing = ids.filter((id) => !described.has(id));
+  // A line whose id no provider serves is stale (a renamed model): Jev never sees it, and it hides the rename.
+  const stale = [...described.keys()].filter((id) => !ids.includes(id));
+  if (missing.length === 0 && stale.length === 0) return [ok('model-descriptions', `every model in providers.json has a description line in ${file}`)];
+  const details: string[] = [];
+  const fixes: string[] = [];
+  if (missing.length) {
+    details.push(`no description line in the router policy for: ${missing.join(', ')}`);
+    fixes.push(`add "<model id>: <text>" lines to "## model descriptions" in the router policy, or remove the models from ${c.file}`);
+  }
+  if (stale.length) {
+    details.push(`description lines for models no provider in providers.json has: ${stale.join(', ')}`);
+    fixes.push(`remove those lines from "## model descriptions" in ${file}, or add the models to ${c.file}`);
+  }
+  return [warn('model-descriptions', details.join('; '), fixes.join('; '))];
 };
 
 /** Every check group, in the order jv doctor prints them. */

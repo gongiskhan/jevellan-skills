@@ -244,3 +244,110 @@ seeds-applied.json.
 "`JV_HOME` overrides it" holds through the shim as well. The shim always runs its own home's runtime entry; with
 another `JV_HOME` that runtime serves the other home's store, and installs a runtime there first when the other home
 has none, from the package recorded in the shim's own home.
+
+## D-025 JV_HOME is part of the worker environment
+
+D-004's list gains `JV_HOME`. The stdio report server and the Stop hook run inside the worker's environment and
+must open the same store as the launcher; without it a non-default home (tests, a second install) is invisible to
+them, and Codex homes have no `.jv` link (D-016) to fall back on.
+
+## D-026 Read-only duties: dontAsk with an explicit allow list
+
+Section 6.1 gives read-only duties `permissionMode: 'dontAsk'` and the tool list `Read, Glob, Grep, WebSearch,
+WebFetch, ToolSearch`. In dontAsk mode a tool that is not pre-approved is denied, so `allowedTools` names
+`mcp__jv__jv_report`, `WebSearch`, `WebFetch`, `Write` for `plan` (its one allowed file, by instruction), and
+`mcp__<name>` for each MCP server in project.json. The `tools` list stays exactly section 6.1's (plus `Write` for
+plan).
+
+## D-027 claude-sdk events and usage
+
+Text and thinking events are recorded once per complete assistant block, not per stream delta, so a turn is a few
+dozen rows; tool inputs and outputs are trimmed to 4000 characters. The SDK's result totals are cumulative over a
+resumed conversation, and every turn is its own row (D-006), so each `usage` event carries the delta: the totals
+minus what the earlier rows with the same `native_session_id` already counted (costs compared with a 1e-5
+tolerance, since they are floats). Without this every resume would count the whole conversation again.
+
+## D-028 The no-report backstop runs in the same process and row
+
+When a claude-sdk turn ends without `jv_report`, the adapter resumes it once with section 5's message in the same
+`jv run` process and the same session row; if there is still no report it writes a `blocked` report with
+limitations `synthesized: no report`. The runtime module's `resume(session, message, input?)` takes the turn input
+as an optional third argument (section 6's signature has two), so a resume does not rebuild what `jv run` already
+built.
+
+## D-029 Meta keys and test hooks of the run machinery
+
+`meta` holds `run_message:<R>` (the message a run delivers besides the task's undelivered messages, such as
+"Continue.") and `report_guard:<R>` (the Stop hook's block count for the turn). Two environment variables exist for
+tests only and are named so in their modules' headers: `JV_TEST_RUNTIME_MODULE` (a fake runtime for the detached
+`jv run`) and `JV_TEST_WORKER_RULES` (another worker rules template).
+
+## D-030 The placement menu and the provider question
+
+The model question has one option per model id, named "<label> via <provider> (<runtime>)" after its best-ranked
+eligible provider; when other eligible providers serve the same id, the second call's provider question chooses
+among them. A provider criterion with no usage observation prints "unknown" ("week unknown of 90%, five hours
+unknown"). A question with a single option is not asked (a choice needs two) and is recorded as `only-option`; when
+nothing is left to ask, the row is written without a Jev call. `state.step.failure` appears only on retries. A
+`noul` answer counts as true at probability 0.5 or above.
+
+## D-031 Which provider kinds run which runtime
+
+The agent runtimes (`claude-sdk`, `claude-tmux`, `codex`) run on `claude-subscription`, `claude-endpoint` and
+`codex-subscription` providers; `llm` runs on `claude-subscription` (section 6.5's one-turn SDK path),
+`claude-endpoint` and `openai-compatible` providers.
+
+## D-032 Owner placement rules: `~/.jv/projects/<name>/rules.json`
+
+Shape: `{"rules":[{"id":"R<n>","when":{"kind"?,"duty"?,"keywords"?},"set":{"minEffort"?,"maxEffort"?,
+"landingRoute"?},"note"?,"enabled"?}]}`. Every rule in the file has project scope; ties between matching rules are
+broken by rule number; an invalid file is exit 2. Rules apply after Jev answers (ported from Jevellan's
+jev-rules.ts), then the effort is mapped onto the chosen model's efforts.
+
+## D-033 Decision rows: who answered
+
+`jev_model` holds the model Jev reports as having answered (for example `jev-1.14.0` for `jev-latest`), not the
+alias asked for. A placement the owner made (`jv task override --undo`) is written with `jev_model: "none"` and
+`chosen_json.source: "owner"`; the evals export skips such rows because there is no Jev answer to replay.
+
+## D-034 The task block names the project's commands
+
+Section 7.4's task block gains one part, after the step instructions: "Project settings (project.json):" with the
+`testCommand`, `devCommand` and `automationDir` that project.json sets (non-empty strings only; the part is left out
+when none is set). The verify and automate duty bodies read the test command, the dev server command and the
+automation folder from it, and nothing else would tell a worker the values the owner configured.
+
+## D-035 Acceptance scripts for phases 2 and 3 create tasks through the runtime's modules
+
+Task creation is phase 4's, so `acceptance/phase2-investigate.mjs` creates the task, its one step and the run row
+through the installed runtime's `dist/store.js` and `dist/launcher.js` with an explicit owner placement, sets the
+step and task running (what the launcher of phase 4 will do), and starts the run with `spawnRun`.
+`acceptance/phase3-placement.mjs` calls `placeStep` of `dist/route.js` on that step against the real Jev, then runs
+the no-key half in a child process whose `JV_HOME` is a temporary folder (paths resolve `JV_HOME` once): an empty
+secrets folder, `jev.keyFile` pointing at a missing file, one provider with an empty home and a `ready` login record
+so the menu is not what refuses. No secret is copied anywhere. Both scripts are kept for the acceptance suite; the
+`jv task create` forms of these checks come with phase 4.
+
+## D-036 A placement with nothing to ask still reaches Jev
+
+D-030 does not ask a question with a single option, and with a one-model, one-effort menu and one eligible provider
+nothing was left to ask, so the row was written without any Jev call: a missing key or a revoked one went unnoticed
+and the step ran, against section 7.2's "No Jev, no placement". The question cannot be sent anyway, because Jev's
+contract refuses a choice with fewer than two options (2 to 255, ported as it is), and padding it with a made-up
+option would put a fake answer in the decision row. So when no question is left, `placeStep` calls `GET /v1/models`
+first: a missing key, an authentication error, a timeout or an invalid response is exit 2 with the JevError message,
+and so is a configured `jev.model` that the list does not name (what `jv doctor --check jev` checks); nothing is
+written then. When it answers, the row is written as D-030 says (sources `only-option`, empty questions and
+answers), with `latency_ms` of that call and one entry in `usage_json.calls` with `questions: []` and `check: "GET
+/v1/models"`. This amends D-030.
+
+## D-037 The shared worker rules depend on the duty
+
+Section 7.9's rules tell every worker to commit on its branch, to save screenshots under `.jv-evidence/` and to end
+with `jv_report`, but `investigate` changes nothing, `plan` writes only plan.md and does not commit, and `answer` and
+`converse` have no tools and report with a fenced block (6.5). `templates/worker-rules.md` therefore has three more
+placeholders, filled by `src/prompt.ts` from the duty: `{{isolation}}` (write duties: the brief's paragraph;
+`plan`: the worktree sentence plus "writes only plan.md ... and no commit"; other read-only duties: "changes nothing
+... does not commit"; llm duties: no repository at all), `{{report}}` (the brief's jv_report rule, or the fenced
+block for llm duties) and `{{work}}` (the evidence and surgical tests bullets, for write duties only). Every other
+line is the brief's.

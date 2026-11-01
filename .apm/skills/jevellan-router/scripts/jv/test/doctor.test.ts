@@ -336,16 +336,20 @@ describe('jv doctor', () => {
     try {
       writeSkill(
         'jevellan-router',
-        '## model\nAsk.\n\n## model descriptions\nclaude-opus-5-5: Strong default.\ngpt-6.1-sol: Long runs.\n\n## effort\nx\n',
+        '## model\nAsk.\n\n## model descriptions\nclaude-opus-5-5: Strong default.\ngpt-6-astra: Long runs.\n\n## effort\nx\n',
       );
       const [w] = await D.runChecks(['model-descriptions'], deps());
       assert.equal(w!.status, 'WARN');
       assert.match(w!.detail, /for: claude-fable-5-1, claude-sonnet-5-5, claude-haiku-5-5, glm-5.3/);
       assert.ok(!w!.detail.includes('claude-opus-5-5,'));
-      const all = ['claude-opus-5-5', 'claude-fable-5-1', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'gpt-6.1-sol', 'glm-5.3', 'deepseek-chat', 'kimi-k2-turbo-preview', 'qwen3:8b'];
+      const all = ['claude-opus-5-5', 'claude-fable-5-1', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'gpt-6-astra', 'glm-5.3', 'deepseek-chat', 'kimi-k2-turbo-preview', 'qwen3:8b'];
       writeSkill('jevellan-router', `## model descriptions\n${all.map((id) => `${id}: text`).join('\n')}\n`);
       const [o] = await D.runChecks(['model-descriptions'], deps());
       assert.equal(o!.status, 'OK');
+      writeSkill('jevellan-router', `## model descriptions\n${[...all, 'gpt-old-1'].map((id) => `${id}: text`).join('\n')}\n`);
+      const [stale] = await D.runChecks(['model-descriptions'], deps());
+      assert.equal(stale!.status, 'WARN');
+      assert.equal(stale!.detail, 'description lines for models no provider in providers.json has: gpt-old-1');
       assert.deepEqual([...D.policyModelDescriptions('## model descriptions\na: x\nb : y\n## next\nc: z')!.keys()], ['a']);
     } finally {
       writeFileSync(routerFile, original);

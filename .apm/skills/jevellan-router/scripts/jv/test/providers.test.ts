@@ -52,7 +52,7 @@ describe('providers.json', () => {
     for (const name of ['deepseek', 'kimi', 'ollama']) {
       assert.ok(P.findProvider(c, name)!.models.every((m) => typeof m.maxTokens === 'number'), name);
     }
-    assert.ok(P.allModelIds(c).includes('gpt-6.1-sol'));
+    assert.ok(P.allModelIds(c).includes('gpt-6-astra'));
     assert.equal(new Set(P.allModelIds(c)).size, P.allModelIds(c).length);
   });
 
@@ -120,7 +120,7 @@ describe('providers.json', () => {
     const c = P.loadProviders(templateFile);
     assert.equal(P.cheapestModel(P.findProvider(c, 'claude-main')!).id, 'claude-haiku-5-5');
     assert.equal(P.cheapestModel(P.findProvider(c, 'claude-second')!).id, 'claude-haiku-5-5');
-    assert.equal(P.cheapestModel(P.findProvider(c, 'codex')!).id, 'gpt-6.1-sol');
+    assert.equal(P.cheapestModel(P.findProvider(c, 'codex')!).id, 'gpt-6-astra');
   });
 });
 

@@ -42,7 +42,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import type { JevQuestion, JevQuestions, JevResponse } from './jev/contract.js';
 import { JvError, refused } from './errors.js';
-import { CLOSED_ASK_REASONS } from './land.js';
+import { isClosedAsk } from './land.js';
 import { paths } from './paths.js';
 import { LANDING_POLICY, parsePolicy, parseRoutes, requireSection, ROUTER_POLICY, routerPolicy, splitFrontmatter, type Policy, type RouterPolicy } from './policy.js';
 import { loadProviders, type ProvidersConfig } from './providers.js';
@@ -158,7 +158,7 @@ export function decisionVerdict(store: Store, row: DecisionRow, state: Record<st
     if (landing.state === 'landed') return 'success';
     // An ask-owner question the owner answered (or a new landing replaced) was closed as failed; its route was not
     // judged by an outcome, so it is skipped like a stopped task.
-    if (landing.state === 'failed' && CLOSED_ASK_REASONS.includes(landing.reason)) return 'stopped';
+    if (landing.state === 'failed' && isClosedAsk(landing.reason)) return 'stopped';
     if (landing.state === 'failed') return 'failure';
     return 'pending';
   }

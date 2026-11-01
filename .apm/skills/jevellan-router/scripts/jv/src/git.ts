@@ -20,10 +20,20 @@ import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync } from '
 import { dirname, join, resolve } from 'node:path';
 import { conflict, refused } from './errors.js';
 import { recordEvent } from './events.js';
-import { paths, realpathAsFarAsExists } from './paths.js';
+import { paths, realpathAsFarAsExists, userHome } from './paths.js';
 import { redact } from './redact.js';
 import type { Store } from './store.js';
 import type { SessionRow } from './types.js';
+
+/**
+ * The environment of `git fetch`: the caller's, with HOME set to the owner's home. jv task create run by the
+ * coordinator has HOME set to a provider home, where the owner's ~/.gitconfig (its credential helper) is missing, so
+ * the fetch failed with "could not read Username" (J4). Only the fetch gets the owner's HOME: worktree, merge and
+ * fast-forward commands keep their environment, so the owner's commit settings (signing, hooks) never reach landing.
+ */
+export function fetchEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  return { ...env, HOME: userHome() };
+}
 
 export interface GitResult {
   code: number;
@@ -172,7 +182,7 @@ export function createWorktree(input: CreateWorktreeInput): CreatedWorktree {
   }
   if (present(path)) throw refused(`${path} exists and is not a worktree of ${repo}; move it away (jv never deletes it)`);
   if (input.fetch !== false && remotes(repo).length) {
-    const r = git(repo, ['fetch', '--quiet', '--no-prune'], { permitted: [0, 1, 128], timeoutMs: 60_000 });
+    const r = git(repo, ['fetch', '--quiet', '--no-prune'], { permitted: [0, 1, 128], timeoutMs: 60_000, env: fetchEnv() });
     if (r.code !== 0) warnings.push(`git fetch failed (${redact(firstLine(r.stderr) || `exit ${r.code}`)}); the worktree starts from the local ${base}`);
   }
   const baseRef = resolveRef(repo, `refs/heads/${base}`) ? `refs/heads/${base}` : resolveRef(repo, `refs/remotes/origin/${base}`) ? `refs/remotes/origin/${base}` : undefined;

@@ -464,7 +464,9 @@ function eventItem(e, results) {
       return evItem(e, html`Rate limit: ${parts.length ? parts.join(', ') : 'no values reported'}`, 'small');
     }
     case 'end':
-      return evItem(e, html`Ended: <b>${label(p.status ?? 'end')}</b>${p.reason ? html`, ${p.reason}` : ''}${p.report ? html`, report ${label(p.report)}` : ''}`, 'small');
+      // The reason often names the report already ("turn ended: report done"); say it once.
+      const reportSaid = p.report && String(p.reason ?? '').includes(`report ${p.report}`);
+      return evItem(e, html`Ended: <b>${label(p.status ?? 'end')}</b>${p.reason ? html`, ${p.reason}` : ''}${p.report && !reportSaid ? html`, report ${label(p.report)}` : ''}`, 'small');
     default:
       return evItem(e, html`<div class="ev-kind">${e.kind}</div><pre>${JSON.stringify(e.payload, null, 2)}</pre>`);
   }

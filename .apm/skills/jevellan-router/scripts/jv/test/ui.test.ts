@@ -478,3 +478,12 @@ test('jv ui --port 0 --json prints the URL, serves, and stops on SIGTERM', async
   child.kill('SIGTERM');
   assert.equal(await exited, 0);
 });
+
+test('Cross-Origin-Opener-Policy only on loopback (a tailnet http origin ignores it and Chrome logs an error)', async () => {
+  const { securityHeaderSet } = await import('../src/ui/server.js');
+  for (const bind of ['127.0.0.1', '::1', 'localhost']) assert.equal(securityHeaderSet(bind)['Cross-Origin-Opener-Policy'], 'same-origin', bind);
+  const tailnet = securityHeaderSet('100.88.165.46');
+  assert.equal(tailnet['Cross-Origin-Opener-Policy'], undefined);
+  assert.equal(tailnet['X-Frame-Options'], 'DENY');
+  assert.equal(tailnet['Cross-Origin-Resource-Policy'], 'same-origin');
+});

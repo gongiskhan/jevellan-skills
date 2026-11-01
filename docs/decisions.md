@@ -740,3 +740,75 @@ offset; then the entries later than its last event are taken. No usage is import
 next turn are counted as D-027 says). Codex takeovers are only marked done, as before. Not yet seen on dev-madrid:
 that `claude --resume <id>` in the takeover window appends to the same file (findings list it as not exercised); if
 it wrote elsewhere, nothing would be imported and the reason would say nothing was typed.
+
+## D-076 "Land now" on a merge conflict resolves it in an appended step
+
+Section 8 routes a merge conflict on the land route to ask-owner, and the owner's "Land now" runs `jv land --force`,
+which merges again and hit the same conflict, so the owner was asked the same question forever and a conflicting
+task could never land. Three parallel tasks that each add a CHANGELOG line (the sandbox's guidance asks for one per
+change) conflict on the second and third landings, so J4 would have stopped there. A forced landing (meta
+`landing_forced:<L>`) whose merge conflicts now appends one implement step, placed by Jev like any step, whose
+instructions (`land.resolveConflictInstructions`) say to merge the target branch, resolve the conflicts keeping both
+sides' intent, run the tests of the conflicted files and commit; the landing row waits in checking with the step in
+meta `landing_step:<L>`, the same mechanism as verify-then-land's verify step, and landing (merge, checks,
+fast-forward) continues when the step is done. A second conflict on the same landing row asks the owner again, so
+nothing loops without the owner. The first conflict still asks the owner, as section 8 says.
+
+## D-077 The user's home is read from the user database, never from HOME
+
+paths.ts resolved `~`, the default JV_HOME, the `~/.jevellan*` folders and "the user's home folder" of the provider
+home check from `os.homedir()`, which is HOME. Every jv command the coordinator runs has HOME set to the claude-main
+provider home, so `providerHomeProblem` saw `$JV_HOME/homes/claude-main` as the user's home and every `jv task create`
+from the coordinator exited 2 with "providers.claude-main.home ... is the user's home folder" (J4, the first command
+the coordinator ran that loads providers.json). `paths.userHome()` now reads the home from the user database
+(`os.userInfo().homedir`, falling back to HOME only without a passwd entry), and `env.ownerHome()` uses it.
+
+## D-078 A single task whose step committed lands (amends the section 4 state rule)
+
+Section 4 makes a `single` task `done` when its step reports done, and the coordinator's prompt (section 9.2)
+recommends `single --duty document` for documentation. The two together stranded documentation on its task branch:
+in J4 the coordinator made the README "How to run" request a single document task, the worker committed the section
+on `jv/...`, the task was done, and nothing ever reached main. `advance.finishSteps` now sends a single task to
+landing (the same automatic `jv land`, Jev's route and the checks) when its branch names a commit other than its base
+(`advance.singleHasCommits`); a single task that committed nothing (investigate, answer, plan, or a document step
+that found nothing to change) is done when its step is, as before.
+
+## D-079 git fetch at task creation runs with the owner's HOME
+
+The fetch before `git worktree add` (section 7.1) inherited HOME from the caller; from the coordinator that is the
+claude-main provider home, which has no `.gitconfig` and so no credential helper, and every fetch failed with
+"could not read Username" (the worktree still started from the local default branch, with a warning the
+coordinator passed on to the owner as a credentials problem). `git.fetchEnv()` sets HOME to the owner's home
+(D-077) for the fetch only; worktree, merge and fast-forward commands keep their environment so the owner's commit
+settings do not reach landing commits.
+
+## D-080 The viewer sends Cross-Origin-Opener-Policy on loopback only
+
+Browsers honour COOP only on a trustworthy origin (HTTPS or loopback). On `jv ui --bind <tailnet ip>`, plain HTTP to
+the phone, Chrome ignored the header and logged a console error on every page (J16). `ui/server.securityHeaderSet`
+leaves COOP out unless the viewer is bound to loopback; nosniff, no-referrer, frame DENY and CORP same-origin stay on
+every address. The session page's end event also stops repeating the report state its reason already names.
+
+## D-081 jv bootstrap and jv update answer --help and refuse unknown arguments
+
+`bin/bootstrap.mjs` ignored every argument it did not know, so `jv update --help` ran a full update (seen in J4:
+it rebuilt and reinstalled the runtime). `--help` and `-h` now print the usage line
+(`jv update [--rebuild] [--source DIR] [--json]`) and exit 0, and any other unknown argument, or `--source` without
+a folder, exits 2 naming it, before the lock, the build or the delegation to the source's bootstrap. The usage
+lines in the CLI's command table say the same.
+
+## D-082 A closed landing question keeps why it was asked
+
+Closing an asked landing row replaced its reason with the answer ("answered: Land now (jv land --force)"), so the
+reason Jev's route asked (in J4 "merge conflict: ... conflicts in CHANGELOG.md") survived only in the wake line and
+the coordinator's transcript. `land.closeAskedLandings` now writes `<answer>; asked: <reason>`, so the viewer and
+`jv evals landing` still read it. `land.isClosedAsk` recognises both that form and the bare answers of rows closed
+before this change; `evals.decisionVerdict` uses it, so an answered ask is still skipped as stopped.
+
+## D-083 jv status leaves out tasks the owner discarded
+
+A task reaches `stopped` only through `jv task stop --discard` ("Leave it"), the owner's own decision; nothing
+waits on it. `jv status` listed such tasks among the open ones for 24 hours (TQ9JMCZ in J4 to J17), while the
+viewer's first page and the handoff already left them out. `status.statusView` now leaves them out like done
+tasks; failed tasks are still listed for 24 hours, since the owner may resume them. The store keeps everything, and
+`jv task show` still shows a discarded task.

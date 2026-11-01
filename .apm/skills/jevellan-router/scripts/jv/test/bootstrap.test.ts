@@ -214,3 +214,31 @@ describe('jv bootstrap', { skip }, () => {
     assert.ok(!existsSync(join(home, 'bootstrap.lock')));
   });
 });
+
+// No build: help and a bad argument answer before the lock, so these run even with JV_TEST_SKIP_BOOTSTRAP.
+describe('jv bootstrap and jv update arguments', () => {
+  const blank = join(root, 'blank');
+
+  test('jv update --help prints the usage, exits 0 and installs nothing', () => {
+    for (const args of [['update', '--help'], ['update', '-h'], ['bootstrap', '--help']]) {
+      const r = node(blank, args);
+      assert.equal(r.status, 0, r.stderr);
+      assert.equal(r.stdout, `jv ${args[0]} [--rebuild] [--source DIR] [--json]\n`);
+      assert.equal(r.stderr, '');
+    }
+    assert.deepEqual(listing(blank), []);
+  });
+
+  test('an unknown argument or a --source without a folder exits 2 and installs nothing', () => {
+    const r = node(blank, ['update', '--forse']);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /^jv update: unknown argument "--forse"\. Usage: jv update \[--rebuild\]/);
+    const s = node(blank, ['bootstrap', '--source']);
+    assert.equal(s.status, 2);
+    assert.match(s.stderr, /--source needs a folder/);
+    const j = node(blank, ['update', 'now', '--json']);
+    assert.equal(j.status, 2);
+    assert.equal(json(j).exitCode, 2);
+    assert.deepEqual(listing(blank), []);
+  });
+});

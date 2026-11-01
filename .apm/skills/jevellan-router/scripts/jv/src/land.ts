@@ -26,10 +26,18 @@
 //    - verify-then-land: one extra verify step is appended (placement by Jev through advance.startStep) with the
 //      instructions of VERIFY_BEFORE_LANDING; when it ends, advance calls landTask again, which lands without asking
 //      Jev again when it passed and puts the task in waiting-owner with the failure otherwise.
+//    - a merge conflict on a landing the owner forced ("Land now" after an ask-owner, typically a merge conflict
+//      itself): instead of asking the same question again, one implement step is appended (placement by Jev) with
+//      the instructions of resolveConflictInstructions: merge the branch it lands into, resolve the conflicts keeping
+//      both sides' intent, run the tests of the conflicted files, commit. The landing row waits in checking for it,
+//      exactly like the verify step of verify-then-land, and landing continues (merge, checks, fast-forward) when it
+//      ends; a second conflict on the same landing row asks the owner. Without this "Land now" could never land a
+//      task that conflicts (J4: three parallel tasks that each add a CHANGELOG line).
 //    - ask-owner: task waiting-owner, landings row asked, the coordinator asks "Land now" or "Leave it". An asked row
 //      is closed (state failed, the reason says how) when the owner answers: "Land now" (any new landing of the task
-//      closes it, reason "answered: Land now" when forced) or "Leave it" (tasks.stopTask --discard). Only the task's
-//      last landing row can be an open question (askedLanding).
+//      closes it, reason "answered: Land now" when forced) or "Leave it" (tasks.stopTask --discard). The closed row
+//      keeps why it was asked after the answer ("<answer>; asked: <reason>", D-082), so the viewer and jv evals
+//      landing still see it. Only the task's last landing row can be an open question (askedLanding).
 // 5. Failed checks on land: landings row failed, task waiting-owner, the coordinator woken with the output tail.
 //
 // `auto` (the launcher's call after the last step): nobody reads an exit code, so a refusal puts the task in
@@ -105,8 +113,20 @@ export const MAX_ROUNDS = 3;
 /** How long a landing waits for another landing of the same project. */
 export const LOCK_WAIT_MS = 60 * 60_000;
 export const LOCK_META_PREFIX = 'landing_lock:';
-/** meta landing_step:<landing id> = the id of the verify step a verify-then-land landing appended. */
+/** meta landing_step:<landing id> = the id of the step a landing appended (verify-then-land's verify, or the conflict resolution). */
 export const LANDING_STEP_META_PREFIX = 'landing_step:';
+/** meta landing_forced:<landing id> = "1" for a landing the owner forced (jv land --force, "Land now"). */
+export const LANDING_FORCED_META_PREFIX = 'landing_forced:';
+
+/** The instructions of the implement step a forced landing appends when merging `into` conflicts. */
+export function resolveConflictInstructions(into: string, branch: string, files: readonly string[]): string {
+  return (
+    `Landing this task on ${into} needs a merge first: merging ${into} into ${branch} conflicts in ${files.join(', ')}. ` +
+    `The owner said "Land now". Run git merge ${into} in this worktree and resolve every conflict keeping what both sides meant ` +
+    `(for a changelog or another list, keep both entries); change nothing else. Run the tests that cover the conflicted files, ` +
+    `then commit the merge on ${branch}. Never touch ${into} itself: landing moves it after you report done.`
+  );
+}
 export const OPTIONS_TEXT = 'Land now (jv land {T} --force) or Leave it (jv task stop {T} --discard)';
 /** The reason an asked landing row closes with when the owner lands the task anyway. */
 export const ANSWERED_LAND_NOW = 'answered: Land now (jv land --force)';
@@ -116,6 +136,18 @@ export const REPLACED_ASK = 'replaced by a new landing of the task';
 export const ANSWERED_LEAVE_IT = 'discarded by the owner (Leave it)';
 /** The reasons of an asked row the owner's answer closed: it ended without an outcome that judges the route. */
 export const CLOSED_ASK_REASONS: readonly string[] = [ANSWERED_LAND_NOW, REPLACED_ASK, ANSWERED_LEAVE_IT];
+/** Between the answer that closed an asked row and the reason the row was asked. */
+export const ASKED_BECAUSE = '; asked: ';
+
+/** The reason an asked row closes with: the answer (one of CLOSED_ASK_REASONS), then why the row was asked. */
+export function closedAskReason(answer: string, asked: string): string {
+  return asked ? cut(`${answer}${ASKED_BECAUSE}${asked}`, 2000) : answer;
+}
+
+/** Whether a failed landing row is an asked one the owner's answer (or a new landing) closed. */
+export function isClosedAsk(reason: string): boolean {
+  return CLOSED_ASK_REASONS.some((r) => reason === r || reason.startsWith(`${r}${ASKED_BECAUSE}`));
+}
 
 // ---- project settings ------------------------------------------------------------------------------------------
 
@@ -584,12 +616,20 @@ export function isLandingVerifyStep(store: Store, stepId: string): boolean {
   return store.listMeta(LANDING_STEP_META_PREFIX).some((m) => m.value === stepId);
 }
 
-/** The newest verify-then-land landing of the task that is still waiting for its verify step. */
+/**
+ * The newest landing of the task that is still waiting for the step it appended: the verify step of
+ * verify-then-land, or the conflict resolution of a forced landing.
+ */
 export function openVerifyLanding(store: Store, taskId: string): LandingRow | undefined {
   const rows = store.listLandings({ task_id: taskId });
   const last = rows[rows.length - 1];
-  if (!last || last.route !== 'verify-then-land' || !['pending', 'checking'].includes(last.state)) return undefined;
+  if (!last || !['pending', 'checking'].includes(last.state)) return undefined;
   return landingStepId(store, last.id) ? last : undefined;
+}
+
+/** What the step a landing appended does, for the texts: by its duty. */
+function landingStepWhat(duty: string | undefined): string {
+  return duty === 'verify' ? 'the verification before landing' : 'the merge conflict resolution before landing';
 }
 
 /** The landing question the owner has not answered: the task's last landing row when it is asked, else none. */
@@ -598,9 +638,11 @@ export function askedLanding(store: Store, taskId: string): LandingRow | undefin
   return last?.state === 'asked' ? last : undefined;
 }
 
-/** Closes every asked landing row of the task (state failed with `reason`): the owner answered, or a new landing replaced it. */
-export function closeAskedLandings(store: Store, taskId: string, reason: string): LandingRow[] {
-  return store.listLandings({ task_id: taskId, states: ['asked'] }).map((l) => store.setLandingState(l.id, 'failed', reason));
+/** Closes every asked landing row of the task (state failed, the answer then the asked reason): the owner answered, or a new landing replaced it. */
+export function closeAskedLandings(store: Store, taskId: string, answer: string): LandingRow[] {
+  return store
+    .listLandings({ task_id: taskId, states: ['asked'] })
+    .map((l) => store.setLandingState(l.id, 'failed', closedAskReason(answer, l.reason)));
 }
 
 /** Where a task lands (see the header): the branch to merge and fast-forward, and the checkout it is moved in. */
@@ -657,7 +699,7 @@ function forceLandingSteps(ctx: Ctx, apply: boolean): string | undefined {
   for (const s of store.listSteps(task.id)) {
     if (!extra.has(s.id) || s.state === 'done' || s.state === 'skipped') continue;
     if (s.state === 'running' || s.state === 'retrying') {
-      return `step ${s.ordinal} (${s.duty}, ${s.id}), the verification before landing, is ${s.state}; stop it first with jv task stop ${task.id}`;
+      return `step ${s.ordinal} (${s.duty}, ${s.id}), ${landingStepWhat(s.duty)}, is ${s.state}; stop it first with jv task stop ${task.id}`;
     }
     if (apply) store.setStepState(s.id, 'skipped', FORCED_REASON);
   }
@@ -800,6 +842,9 @@ async function land(ctx: Ctx, landing: LandingRow): Promise<LandResult> {
     row = store.setLandingState(row.id, 'checking', `merging ${into} into ${branch}`);
     const merged = await mergeInto(worktree, `refs/heads/${into}`, `Merge ${into} into ${branch}`);
     if (merged.kind === 'conflict') {
+      // The owner already said "Land now": a step resolves the conflict (once per landing row) instead of the same question again.
+      const forced = ctx.options.force === true || store.getMeta(`${LANDING_FORCED_META_PREFIX}${row.id}`) === '1';
+      if (forced && !landingStepId(store, row.id)) return resolveThenLand(ctx, row, into, branch, merged.files);
       return askOwner(ctx, row, `merge conflict: merging ${into} into ${branch} conflicts in ${listText(merged.files)}`, { route: 'ask-owner' });
     }
     const head = merged.head;
@@ -885,19 +930,30 @@ async function loadStartStep(ctx: Ctx): Promise<StartStep> {
 
 /** verify-then-land: appends one verify step and starts it; landing continues when it ends. */
 async function verifyThenLand(ctx: Ctx, landing: LandingRow): Promise<LandResult> {
+  return appendLandingStep(ctx, landing, 'verify', VERIFY_BEFORE_LANDING, 'verification before landing');
+}
+
+/** A forced landing whose merge conflicts: appends one implement step that resolves it; landing continues when it ends. */
+async function resolveThenLand(ctx: Ctx, landing: LandingRow, into: string, branch: string, files: readonly string[]): Promise<LandResult> {
+  ctx.store.setTaskState(ctx.task.id, 'landing', `landing: resolving the merge conflict in ${listText(files)} before landing`);
+  return appendLandingStep(ctx, landing, 'implement', resolveConflictInstructions(into, branch, files), `merge conflict in ${listText(files)}, resolving before landing`);
+}
+
+/** Appends one step to the task for the landing (meta landing_step) and starts it; landing continues when it ends. */
+async function appendLandingStep(ctx: Ctx, landing: LandingRow, duty: string, instructions: string, what: string): Promise<LandResult> {
   const { store, task } = ctx;
   const steps = store.listSteps(task.id);
   const ordinal = Math.max(0, ...steps.map((s) => s.ordinal)) + 1;
   const step = store.tx(() => {
-    const created = store.createStep({ task_id: task.id, ordinal, duty: 'verify', instructions: VERIFY_BEFORE_LANDING, when_rule: 'always', on_fail_json: null });
+    const created = store.createStep({ task_id: task.id, ordinal, duty, instructions, when_rule: 'always', on_fail_json: null });
     store.setMeta(`${LANDING_STEP_META_PREFIX}${landing.id}`, created.row.id);
     return created.row;
   });
-  const row = store.setLandingState(landing.id, 'checking', `verification before landing: step ${step.ordinal} verify (${step.id})`);
+  const row = store.setLandingState(landing.id, 'checking', `${what}: step ${step.ordinal} ${duty} (${step.id})`);
   const startStep = await loadStartStep(ctx);
   let started: unknown;
   try {
-    started = await startStep(store, task.id, { reason: `verification before landing (${landing.id})`, stepId: step.id });
+    started = await startStep(store, task.id, { reason: `${what} (${landing.id})`, stepId: step.id });
   } catch (error) {
     // The step stays pending with the placement's reason (advance records it); the landing waits for it.
     const message = error instanceof Error ? error.message : String(error);
@@ -918,25 +974,26 @@ async function verifyThenLand(ctx: Ctx, landing: LandingRow): Promise<LandResult
   };
 }
 
-/** A verify-then-land landing whose verify step ended (or is still running). */
+/** A landing whose appended step (verify-then-land's verify, or a conflict resolution) ended (or is still running). */
 async function continueVerify(ctx: Ctx, landing: LandingRow): Promise<LandResult> {
   const { store } = ctx;
   const stepId = landingStepId(store, landing.id)!;
   const step = store.getStep(stepId);
   const base = { route: landing.route, taskId: ctx.task.id, landingId: landing.id, stepId, ...(landing.decision_id ? { decisionId: landing.decision_id } : {}) };
   if (!step) return failLanding(ctx, landing, `the verify step ${stepId} of the landing is gone`, `verification step ${stepId} is gone`);
+  const what = landingStepWhat(step.duty);
   if (step.state === 'pending' || step.state === 'running' || step.state === 'retrying') {
-    if (ctx.options.auto) return { ...base, state: 'checking', reason: `verification before landing is ${step.state} (step ${step.id})` };
-    throw refused(`task ${ctx.task.id}: the verification before landing (step ${step.ordinal}, ${step.id}) is ${step.state}; landing continues when it ends${step.state === 'pending' ? ` (jv task resume ${ctx.task.id} starts it)` : ''}`);
+    if (ctx.options.auto) return { ...base, state: 'checking', reason: `${what} is ${step.state} (step ${step.id})` };
+    throw refused(`task ${ctx.task.id}: ${what} (step ${step.ordinal}, ${step.id}) is ${step.state}; landing continues when it ends${step.state === 'pending' ? ` (jv task resume ${ctx.task.id} starts it)` : ''}`);
   }
   const reports = store.listReports({ step_id: step.id });
   const last = reports[reports.length - 1];
   const tests = last ? testsOf(last.tests_json) : undefined;
   const passed = step.state === 'done' && last?.status === 'done' && tests?.passed !== false;
   if (!passed) {
-    const what = tests?.passed === false ? tests.summary || last!.summary : last ? last.summary : step.state_reason || step.state;
+    const why = tests?.passed === false ? tests.summary || last!.summary : last ? last.summary : step.state_reason || step.state;
     const session = last?.session_id;
-    const reason = `verification before landing failed: ${oneLine(what, 1500)}`;
+    const reason = `${what.replace(/^the /, '')} failed: ${oneLine(why, 1500)}`;
     const text = redact(reason);
     store.setLandingState(landing.id, 'failed', cut(text, 2000));
     store.setTaskState(ctx.task.id, 'waiting-owner', cut(text, 1000));
@@ -945,7 +1002,7 @@ async function continueVerify(ctx: Ctx, landing: LandingRow): Promise<LandResult
       await notify(store, {
         projectId: ctx.project.id,
         taskId: ctx.task.id,
-        line: `[jv] ${ctx.task.id} (${oneLine(ctx.task.title, 80)}) step verify: ${oneLine(text, 400)}. Run: ${session ? `jv report ${session}` : `jv task show ${ctx.task.id}`}`,
+        line: `[jv] ${ctx.task.id} (${oneLine(ctx.task.title, 80)}) step ${step.duty}: ${oneLine(text, 400)}. Run: ${session ? `jv report ${session}` : `jv task show ${ctx.task.id}`}`,
       });
     } catch {
       // see wake()
@@ -957,8 +1014,9 @@ async function continueVerify(ctx: Ctx, landing: LandingRow): Promise<LandResult
     store.setLandingState(landing.id, 'failed', cut(redact(problem), 2000));
     return refuse(ctx, problem);
   }
-  store.setTaskState(ctx.task.id, 'landing', 'verification before landing passed; landing');
-  const row = store.setLandingState(landing.id, 'checking', 'verification before landing passed');
+  const passedText = `${what.replace(/^the /, '')} passed`;
+  store.setTaskState(ctx.task.id, 'landing', `${passedText}; landing`);
+  const row = store.setLandingState(landing.id, 'checking', passedText);
   return guarded(ctx, row, () => land(ctx, row));
 }
 
@@ -1020,6 +1078,7 @@ export async function landTask(store: Store, taskId: string, options: LandOption
 
     if (options.force) {
       const row = store.createLanding({ task_id: task.id, route: 'land', state: 'pending', reason: FORCED_REASON });
+      store.setMeta(`${LANDING_FORCED_META_PREFIX}${row.id}`, '1');
       return guarded(ctx, row, () => land(ctx, row));
     }
 
@@ -1072,7 +1131,7 @@ export function formatLandResult(r: LandResult): string {
       : r.state === 'asked'
         ? `${r.taskId}: the owner decides (route ${r.route}). Options: ${optionsText(r.taskId)}`
         : r.state === 'checking'
-          ? `${r.taskId}: verifying before landing (route ${r.route}${r.stepId ? `, step ${r.stepId}` : ''})`
+          ? `${r.taskId}: ${r.route === 'verify-then-land' ? 'verifying' : 'resolving the merge conflict'} before landing (route ${r.route}${r.stepId ? `, step ${r.stepId}` : ''})`
           : `${r.taskId}: landing ${r.state} (route ${r.route})`;
   lines.push(head, `Reason: ${r.reason}`);
   for (const c of r.checks ?? []) {

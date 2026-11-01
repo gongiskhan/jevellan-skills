@@ -12,7 +12,8 @@ const home = mkdtempSync(join(tmpdir(), 'jv-providers-test-'));
 process.env.JV_HOME = home;
 
 const P = await import('../src/providers.js');
-const { RUNTIME_ROOT } = await import('../src/paths.js');
+const PATHS = await import('../src/paths.js');
+const { RUNTIME_ROOT } = PATHS;
 const { JvError } = await import('../src/errors.js');
 type ProviderUsageRow = import('../src/types.js').ProviderUsageRow;
 
@@ -80,6 +81,28 @@ describe('providers.json', () => {
     const s = template();
     s.providers[0]!.home = join(home, 'homes', 'link-to-user-home');
     assert.throws(() => P.parseProviders(s), (e) => isRefused(e, 'home folder'));
+  });
+
+  test('inside a session (HOME is a provider home) that provider home is still valid and ~ is the owner home', () => {
+    // The coordinator and the workers run jv with HOME set to $JV_HOME/homes/<provider>; the owner's home comes from
+    // the user database. Before, HOME made claude-main's home "the user's home folder" and jv task create refused.
+    const saved = process.env.HOME;
+    const providerHome = join(home, 'homes', 'claude-main');
+    mkdirSync(providerHome, { recursive: true });
+    try {
+      process.env.HOME = providerHome;
+      assert.equal(os.homedir(), providerHome);
+      const c = P.parseProviders(template());
+      assert.equal(P.findProvider(c, 'claude-main')!.home, providerHome);
+      const t = template();
+      t.providers[0]!.home = '~';
+      assert.throws(() => P.parseProviders(t), (e) => isRefused(e, "user's home folder"));
+      const { userHome } = PATHS;
+      assert.equal(userHome(), os.userInfo().homedir);
+    } finally {
+      if (saved === undefined) delete process.env.HOME;
+      else process.env.HOME = saved;
+    }
   });
 
   test('"same as" must name a provider and must not loop', () => {

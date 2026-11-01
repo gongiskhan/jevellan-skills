@@ -1,20 +1,33 @@
-// Every jv path, resolved from JV_HOME (default ~/.jv). Nothing else in the runtime reads
-// os.homedir() for jv paths; code that needs a place under the home asks this module.
+// Every jv path, resolved from JV_HOME (default ~/.jv). Nothing else in the runtime reads the user's home for jv
+// paths; code that needs a place under the home asks this module. "The user's home" is the owner's home from the user
+// database (userHome), never HOME: jv commands run by the coordinator or a worker have HOME set to a provider home
+// ($JV_HOME/homes/<name>), and reading HOME there made that provider home "the user's home folder" (J4).
 
 import { existsSync, readdirSync, realpathSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, userInfo } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+/** The owner's home folder from the user database, not from HOME (HOME is a provider home inside sessions). */
+export function userHome(): string {
+  try {
+    const h = userInfo().homedir;
+    if (h) return h;
+  } catch {
+    // no passwd entry
+  }
+  return homedir();
+}
 
 function resolveJvHome(): string {
   const fromEnv = process.env.JV_HOME;
   if (fromEnv !== undefined && fromEnv.trim() !== '') return resolve(expandTilde(fromEnv.trim()));
-  return join(homedir(), '.jv');
+  return join(userHome(), '.jv');
 }
 
 function expandTilde(p: string): string {
-  if (p === '~') return homedir();
-  if (p.startsWith('~/')) return join(homedir(), p.slice(2));
+  if (p === '~') return userHome();
+  if (p.startsWith('~/')) return join(userHome(), p.slice(2));
   return p;
 }
 
@@ -188,9 +201,9 @@ export function realpathAsFarAsExists(p: string): string {
 /** The user's Jevellan folders (~/.jevellan, ~/.jevellan-hub, ...): jv never writes there. */
 function jevellanFolders(): string[] {
   try {
-    return readdirSync(homedir())
+    return readdirSync(userHome())
       .filter((n) => n.startsWith('.jevellan'))
-      .map((n) => join(homedir(), n));
+      .map((n) => join(userHome(), n));
   } catch {
     return [];
   }
@@ -205,8 +218,8 @@ export function providerHomeProblem(home: string): string | undefined {
   const candidates = [...new Set([resolve(home), realpathAsFarAsExists(home)])];
   const homesDirs = [...new Set([paths.homesDir, realpathAsFarAsExists(paths.homesDir)])];
   for (const c of candidates) {
-    if (c === resolve(homedir()) || c === realpathAsFarAsExists(homedir())) return `${home} is the user's home folder`;
-    const jevellan = [...jevellanFolders(), join(homedir(), '.jevellan')].find((j) => isInside(c, j, true));
+    if (c === resolve(userHome()) || c === realpathAsFarAsExists(userHome())) return `${home} is the user's home folder`;
+    const jevellan = [...jevellanFolders(), join(userHome(), '.jevellan')].find((j) => isInside(c, j, true));
     if (jevellan) return `${home} is inside ${jevellan}, which belongs to Jevellan`;
   }
   if (!candidates.every((c) => homesDirs.some((h) => isInside(c, h)))) return `${home} is not inside ${paths.homesDir}`;

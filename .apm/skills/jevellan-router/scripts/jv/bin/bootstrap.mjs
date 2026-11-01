@@ -18,6 +18,7 @@
 //      mode 700), calls seed() from the new runtime's dist/seeds.js, records install.json and prints the PATH line.
 // jv update runs the same steps from the source recorded in install.json, with that source's own bootstrap.mjs
 // when it differs from this one, so a fix to the bootstrap applies on the update that brings it.
+// --help (or -h) prints the usage and does nothing else; an unknown argument exits 2 before any lock or build (D-081).
 // Deleted: only jv's own build output (*.partial folders a failed run left behind, node_modules of archived
 // runtimes). Nothing else.
 
@@ -185,16 +186,23 @@ function skillFilter(skillDir, name) {
   };
 }
 
+/** The usage line of jv bootstrap or jv update (--first-use is internal: bin/jv.mjs passes it). */
+function usage(mode) {
+  return `jv ${mode} [--rebuild] [--source DIR] [--json]`;
+}
+
 function parseOptions(argv) {
-  const opts = { mode: 'bootstrap', firstUse: false, json: false, rebuild: false, source: undefined };
+  const opts = { mode: 'bootstrap', firstUse: false, json: false, rebuild: false, source: undefined, help: false, unknown: undefined };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === 'bootstrap' || a === 'update') opts.mode = a;
     else if (a === '--first-use') opts.firstUse = true;
     else if (a === '--json') opts.json = true;
     else if (a === '--rebuild') opts.rebuild = true;
-    else if (a === '--source') opts.source = argv[++i];
-    else if (a.startsWith('--source=')) opts.source = a.slice('--source='.length);
+    else if (a === '--help' || a === '-h') opts.help = true;
+    else if (a === '--source' && argv[i + 1] !== undefined && !argv[i + 1].startsWith('-')) opts.source = argv[++i];
+    else if (a.startsWith('--source=') && a.length > '--source='.length) opts.source = a.slice('--source='.length);
+    else opts.unknown ??= a;
   }
   return opts;
 }
@@ -590,6 +598,15 @@ export async function bootstrap(argv = []) {
   const log = (line) => process.stderr.write(`[jv ${opts.mode}] ${line}\n`);
   let release = () => {};
   try {
+    // Help and a bad argument answer before anything else: no lock, no build, no delegation.
+    if (opts.help) {
+      process.stdout.write(`${usage(opts.mode)}\n`);
+      return 0;
+    }
+    if (opts.unknown !== undefined) {
+      const what = opts.unknown === '--source' || opts.unknown.startsWith('--source=') ? '--source needs a folder' : `unknown argument "${opts.unknown}"`;
+      throw new BootstrapError(`${what}. Usage: ${usage(opts.mode)}`);
+    }
     if (!nodeIsRecentEnough()) {
       throw new BootstrapError(`Node ${process.versions.node} is too old; jv needs Node 22.13 or later (node:sqlite)`);
     }

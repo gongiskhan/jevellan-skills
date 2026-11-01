@@ -412,6 +412,80 @@ describe('the land route', () => {
     assert.match(wakes[0]!.line, /ask-owner, merge conflict: .*Options: Land now \(jv land T\w+ --force\) or Leave it \(jv task stop T\w+ --discard\)/);
   });
 
+  test('Land now on a merge conflict appends one implement step that resolves it, and lands when it is done', async () => {
+    const f = makeFixture();
+    writeFileSync(join(f.worktree, 'src', 'shared.js'), 'export const a = "task";\n');
+    git(f.worktree, 'commit', '-q', '-am', 'task edits shared');
+    writeFileSync(join(f.repo, 'src', 'shared.js'), 'export const a = "owner";\n');
+    git(f.repo, 'commit', '-q', '-am', 'owner edits shared');
+    const mainBefore = git(f.repo, 'rev-parse', 'main');
+    const asked = await L.landTask(store, f.taskId, opts('land'));
+    assert.equal(asked.state, 'asked');
+
+    // "Land now": the same conflict, but no second question: a step resolves it.
+    const started: string[] = [];
+    const startStep = async (_s: Store, _taskId: string, o: { stepId?: string }) => {
+      started.push(o.stepId!);
+      return undefined;
+    };
+    const forced = await L.landTask(store, f.taskId, opts('land', { force: true, startStep }));
+    assert.equal(forced.state, 'checking');
+    assert.equal(forced.route, 'land');
+    assert.match(L.formatLandResult(forced), /resolving the merge conflict before landing/);
+    const steps = store.listSteps(f.taskId);
+    assert.equal(steps.length, 3);
+    const extra = steps[2]!;
+    assert.deepEqual(started, [extra.id]);
+    assert.equal(extra.duty, 'implement');
+    assert.equal(extra.instructions, L.resolveConflictInstructions('main', f.branch, ['src/shared.js']));
+    assert.ok(L.isLandingVerifyStep(store, extra.id));
+    const rows = store.listLandings({ task_id: f.taskId });
+    assert.deepEqual(rows.map((r) => [r.route, r.state]), [['ask-owner', 'failed'], ['land', 'checking']]);
+    assert.match(rows[1]!.reason, /^merge conflict in src\/shared\.js, resolving before landing: step 3 implement/);
+    assert.equal(store.requireTask(f.taskId).state, 'landing');
+    assert.equal(L.askedLanding(store, f.taskId), undefined, 'no question is open while the step resolves it');
+    assert.equal(git(f.repo, 'rev-parse', 'main'), mainBefore, 'main did not move');
+    assert.equal(wakes.length, 1, 'only the first question woke the coordinator');
+
+    // The step merges main and resolves the conflict, keeping both sides; the launcher calls landTask again.
+    try {
+      git(f.worktree, 'merge', 'main');
+    } catch {
+      // the conflict the step resolves
+    }
+    writeFileSync(join(f.worktree, 'src', 'shared.js'), 'export const a = "owner";\nexport const t = "task";\n');
+    git(f.worktree, 'commit', '-q', '-am', 'Merge main and keep both values');
+    addReport(f.taskId, extra.id, 'done', 'Merged main and resolved src/shared.js.');
+    store.setStepState(extra.id, 'done', 'report done');
+    const done = await L.landTask(store, f.taskId, opts('ask-owner', { auto: true, startStep }));
+    assert.equal(done.state, 'landed');
+    assert.equal(done.route, 'land');
+    assert.equal(seen.length, 1, 'Jev was asked only for the first landing');
+    const task = store.requireTask(f.taskId);
+    assert.equal(task.state, 'done');
+    assert.equal(git(f.repo, 'rev-parse', 'main'), task.landed_commit);
+    assert.equal(readFileSync(join(f.repo, 'src', 'shared.js'), 'utf8'), 'export const a = "owner";\nexport const t = "task";\n');
+  });
+
+  test('a forced landing that conflicts again after its resolution step asks the owner instead of looping', async () => {
+    const f = makeFixture();
+    writeFileSync(join(f.worktree, 'src', 'shared.js'), 'export const a = "task";\n');
+    git(f.worktree, 'commit', '-q', '-am', 'task edits shared');
+    writeFileSync(join(f.repo, 'src', 'shared.js'), 'export const a = "owner";\n');
+    git(f.repo, 'commit', '-q', '-am', 'owner edits shared');
+    const forced = await L.landTask(store, f.taskId, opts('land', { force: true, startStep: async () => undefined }));
+    assert.equal(forced.state, 'checking');
+    const extra = store.requireStep(forced.stepId!);
+    // The step reports done without resolving anything: the merge still conflicts.
+    addReport(f.taskId, extra.id, 'done', 'Nothing to do.');
+    store.setStepState(extra.id, 'done', 'report done');
+    const again = await L.landTask(store, f.taskId, opts('land', { auto: true, startStep: async () => assert.fail('no second step') }));
+    assert.equal(again.state, 'asked');
+    assert.match(again.reason, /^merge conflict: /);
+    assert.equal(store.listSteps(f.taskId).length, 3);
+    assert.equal(store.requireTask(f.taskId).state, 'waiting-owner');
+  });
+
   test('pushAfterLanding pushes the default branch to origin', async () => {
     const f = makeFixture({ projectJson: { testCommand: null, pushAfterLanding: true } });
     const remote = join(home, 'remotes', `${f.projectName}.git`);
@@ -528,7 +602,9 @@ describe('routes other than land', () => {
     const landings = store.listLandings({ task_id: f.taskId });
     // "Land now" answered the question: the asked row is closed, the new row is the landing.
     assert.deepEqual(landings.map((l) => [l.route, l.state]), [['ask-owner', 'failed'], ['land', 'landed']]);
-    assert.equal(landings[0]!.reason, L.ANSWERED_LAND_NOW);
+    // The closed row keeps why Jev's route asked, after the answer.
+    assert.equal(landings[0]!.reason, `${L.ANSWERED_LAND_NOW}; asked: ${r.reason}`);
+    assert.ok(L.isClosedAsk(landings[0]!.reason));
     assert.equal(landings[1]!.decision_id, null);
     assert.equal(store.requireTask(f.taskId).state, 'done');
     // An answered ask has no outcome of its own: jv evals landing skips it.

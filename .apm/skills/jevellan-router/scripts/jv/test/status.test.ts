@@ -1,5 +1,5 @@
-// jv status (status.ts): waiting-on-owner first, done tasks out (listed apart for 24 hours), failed tasks for 24
-// hours, the latest run and report per task, the options of a needs-decision and of a landing ask, lost runs marked
+// jv status (status.ts): waiting-on-owner first, done tasks out (listed apart for 24 hours), discarded (stopped)
+// tasks out, failed tasks for 24 hours, the latest run and report per task, the options of a needs-decision and of a landing ask, lost runs marked
 // at read time, and the --project filter.
 
 import assert from 'node:assert/strict';
@@ -23,7 +23,7 @@ after(() => {
 const p1 = store.createProject({ name: 'one', path: '/tmp/jv-status-one', default_branch: 'main' }).row;
 const p2 = store.createProject({ name: 'two', path: '/tmp/jv-status-two', default_branch: 'main' }).row;
 let n = 0;
-function task(projectId: string, title: string, state: 'queued' | 'running' | 'waiting-owner' | 'landing' | 'done' | 'failed') {
+function task(projectId: string, title: string, state: 'queued' | 'running' | 'waiting-owner' | 'landing' | 'done' | 'failed' | 'stopped') {
   n++;
   const t = store.createTask({ project_id: projectId, request_id: `r${n}`, kind: 'feature', title, task_text: 'x', workflow_json: '{}' }).row;
   const step = store.createStep({ task_id: t.id, ordinal: 1, duty: 'implement' }).row;
@@ -56,6 +56,8 @@ const lost = task(p1.id, 'Lost one', 'running');
 store.setSessionState(lost.run.id, 'running', 'x', { pid: 999999, native_session_id: 'native-lost' });
 const done = task(p1.id, 'Done one', 'done');
 const failed = task(p2.id, 'Failed one', 'failed');
+const discarded = task(p1.id, 'Discarded one', 'stopped');
+store.setSessionState(discarded.run.id, 'stopped', 'discarded by the owner');
 const queued = task(p2.id, 'Queued one', 'queued');
 const coordinator = store.createSession({ project_id: p1.id, request_id: 'coord', kind: 'coordinator', runtime: 'claude-tmux', provider: 'claude-main', model: 'model-strong', effort: 'high', cwd: '/tmp' }).row;
 store.setSessionState(coordinator.id, 'running', 'coordinator up', { tmux_target: 'jv-coord-one' });
@@ -67,6 +69,9 @@ test('status lists open work, waiting-on-owner first, and marks lost runs at rea
   assert.deepEqual(ids.slice(0, 2).sort(), [waiting.task.id, asking.task.id].sort(), 'waiting-owner first');
   assert.ok(!ids.includes(done.task.id), 'done tasks are left out');
   assert.ok(ids.includes(failed.task.id), 'a task that failed in the last 24 hours is listed');
+  assert.ok(!ids.includes(discarded.task.id), 'a task the owner discarded is no open work');
+  assert.ok(!view.recent.some((r) => r.id === discarded.task.id));
+  assert.ok(!view.sessions.some((s) => s.task === discarded.task.id));
   assert.deepEqual(view.tasks.map((t) => t.state), ['waiting-owner', 'waiting-owner', 'running', 'running', 'queued', 'failed']);
   assert.deepEqual(view.recent.map((r) => r.id), [done.task.id]);
 

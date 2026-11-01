@@ -114,12 +114,24 @@ export function hostAllowed(host: string | undefined): boolean {
   return name.endsWith('.ts.net');
 }
 
-function securityHeaders(res: ServerResponse): void {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+/**
+ * The headers every response carries. Cross-Origin-Opener-Policy only on loopback: browsers honour it only on a
+ * trustworthy origin (HTTPS or loopback), and on plain HTTP over the tailnet (jv ui --bind 100.x.y.z, the phone)
+ * Chrome ignores it and logs a console error on every page (J16).
+ */
+export function securityHeaderSet(bind: string): Record<string, string> {
+  const loopback = bind === 'localhost' || bind === '::1' || bind.startsWith('127.');
+  return {
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'X-Frame-Options': 'DENY',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    ...(loopback ? { 'Cross-Origin-Opener-Policy': 'same-origin' } : {}),
+  };
+}
+
+function securityHeaders(res: ServerResponse, bind: string): void {
+  for (const [k, v] of Object.entries(securityHeaderSet(bind))) res.setHeader(k, v);
 }
 
 function send(res: ServerResponse, status: number, type: string, body: string | Buffer, head: boolean, extra: Record<string, string> = {}): void {
@@ -264,7 +276,7 @@ export async function startUiServer(options: UiServerOptions = {}): Promise<UiSe
 
   // ---- routes -----------------------------------------------------------------------------------------------------
   function handle(req: IncomingMessage, res: ServerResponse): void {
-    securityHeaders(res);
+    securityHeaders(res, bind);
     const method = req.method ?? 'GET';
     if (method !== 'GET' && method !== 'HEAD') {
       res.setHeader('Allow', 'GET, HEAD');

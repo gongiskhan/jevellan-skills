@@ -18,10 +18,9 @@
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { homedir, userInfo } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { refused } from './errors.js';
-import { paths } from './paths.js';
+import { paths, userHome } from './paths.js';
 import { CLAUDE_KINDS, providerEnv, type Provider } from './providers.js';
 
 /** Jevellan's BASE list, without HOME (always the provider's). */
@@ -49,13 +48,7 @@ export function bootstrapNode(installFile: string = paths.installFile): string {
  * session) have HOME set to a provider home, where there is no .gitconfig and no browser cache.
  */
 export function ownerHome(): string {
-  try {
-    const h = userInfo().homedir;
-    if (h) return h;
-  } catch {
-    // no passwd entry
-  }
-  return homedir();
+  return userHome();
 }
 
 let cachedIdentity: GitIdentity | undefined;

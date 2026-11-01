@@ -12,6 +12,7 @@ import { makeHome, writeSkill } from './fixtures/run-fixture.js';
 const home = makeHome('jv-tasks-test-');
 process.env.JV_HOME = home;
 const T = await import('../src/tasks.js');
+const L = await import('../src/land.js');
 const { openStore } = await import('../src/store.js');
 const { writeReport } = await import('../src/report.js');
 const { runMessage } = await import('../src/launcher.js');
@@ -228,6 +229,28 @@ test('create: workflow, auto request id, worktree, task.md, workflow questions a
   );
 });
 
+test('create --parent: the child worktree starts from the parent branch, not the default branch (J14)', async () => {
+  const parent = (await T.createTask(store, input(), deps)).task;
+  // The parent's branch moves ahead of main, so the two bases differ.
+  writeFileSync(join(parent.worktree_path!, 'parent.txt'), 'from the parent\n');
+  const wt = (...args: string[]) =>
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.test', '-C', parent.worktree_path!, ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' },
+    }).trim();
+  wt('add', 'parent.txt');
+  wt('commit', '-q', '-m', 'parent work');
+  const parentHead = git('rev-parse', `refs/heads/${parent.branch}`);
+  assert.notEqual(parentHead, git('rev-parse', 'main'));
+
+  const child = (await T.createTask(store, input({ parent: parent.id }), deps)).task;
+  assert.equal(child.parent_task_id, parent.id);
+  assert.equal(child.base_commit, parentHead, "the child's base is the parent's branch head");
+  assert.equal(git('rev-parse', `refs/heads/${child.branch}`), parentHead);
+  assert.ok(existsSync(join(child.worktree_path!, 'parent.txt')), "the child's worktree holds the parent's work");
+  assert.equal(git('rev-parse', 'main'), git('rev-parse', `${parent.base_commit}`), 'main did not move');
+});
+
 test('create: the preflight probes stale logins and refuses with the doctor line before creating anything', async () => {
   const old = new Date(Date.now() - 13 * 3600 * 1000).toISOString();
   for (const p of ['claude-main', 'glm']) recordProviderAuth(store, p, { auth: 'ready', observedAt: new Date().toISOString() });
@@ -322,6 +345,8 @@ test('answer on a landing ask: Land now lands with force, Leave it stops with di
   const r = await T.answerTask(store, a.task.id, 'land now', { env: {}, deps });
   assert.equal(r.answer, 'Land now');
   assert.deepEqual(landed, [{ task: a.task.id, force: true }]);
+  assert.equal(L.isClosedAsk('answered: Land now (jv land --force)'), true, 'a row closed before D-082 still counts');
+  assert.equal(L.isClosedAsk('checks failed: unit'), false);
 
   const b = await T.createTask(store, input({ kind: 'bug' }), deps);
   store.createLanding({ task_id: b.task.id, route: 'ask-owner', state: 'asked', reason: 'large' });
@@ -329,7 +354,7 @@ test('answer on a landing ask: Land now lands with force, Leave it stops with di
   const s = await T.answerTask(store, b.task.id, 'Leave it', { env: {}, deps });
   assert.equal(s.stopped?.task.state, 'stopped');
   // "Leave it" answers the question: no asked row stays open.
-  assert.deepEqual(store.listLandings({ task_id: b.task.id }).map((l) => [l.state, l.reason]), [['failed', 'discarded by the owner (Leave it)']]);
+  assert.deepEqual(store.listLandings({ task_id: b.task.id }).map((l) => [l.state, l.reason]), [['failed', 'discarded by the owner (Leave it); asked: large']]);
   assert.match(store.requireTask(b.task.id).state_reason, /discarded by the owner; the worktree stays at/);
   await assert.rejects(T.answerTask(store, b.task.id, 'maybe', { env: {}, deps }), /not waiting on an answer/);
 });

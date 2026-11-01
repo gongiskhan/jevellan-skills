@@ -16,7 +16,8 @@
 //   native session is resumed with them, as a new run row, before anything advances;
 // - report done: the step is done and its placement decision gets outcome_json {status, attempts, durationMs,
 //   costUsd}; the next pending step (skipped ones are skipped) is placed and started; after the last step a single
-//   task is done, any other task goes to landing and landTask(store, id, {auto: true}) runs;
+//   task with nothing committed on its branch is done, any other task (a single task whose document or implement
+//   step committed too, D-078) goes to landing and landTask(store, id, {auto: true}) runs;
 // - report progress: the same native session continues with "Continue." as a new run row, up to 20 times per
 //   placement of the step, then the task waits on the owner with "too many progress reports";
 // - report needs-decision or blocked (or a turn that ended without any report): the task waits on the owner and the
@@ -33,7 +34,9 @@
 // Everything that needs no Jev call (the step's state, the outcome, the task's state) is written before the first
 // await, so a caller that does not wait still leaves the store consistent.
 
+import { existsSync } from 'node:fs';
 import { conflict, isJvError, refused } from './errors.js';
+import { resolveCommit } from './land-git.js';
 import { createRun, spawnRun } from './launcher.js';
 import { isLandingVerifyStep, landTask, type LandOptions, type LandResult } from './land.js';
 import { CONTINUE_PROMPT } from './prompt.js';
@@ -336,11 +339,25 @@ export async function releaseDependents(store: Store, taskId: string, deps?: Par
   return started;
 }
 
-/** Every step is done or skipped: a single task is done; any other task goes to landing (jv land, automatic). */
+/**
+ * Whether a single task committed on its branch (a document or implement step): its branch names a commit other
+ * than the task's base. Such a task lands like any other; a single task with nothing committed (an investigation,
+ * an answer) is done when its step is.
+ */
+export async function singleHasCommits(task: TaskRow): Promise<boolean> {
+  if (!task.branch || !task.worktree_path || !task.base_commit || !existsSync(task.worktree_path)) return false;
+  const head = await resolveCommit(task.worktree_path, `refs/heads/${task.branch}`).catch(() => undefined);
+  return head !== undefined && head !== task.base_commit;
+}
+
+/**
+ * Every step is done or skipped: a single task with nothing committed is done; any other task (and a single task
+ * whose step committed, D-078) goes to landing (jv land, automatic).
+ */
 export async function finishSteps(store: Store, taskId: string, deps?: Partial<AdvanceDeps>): Promise<TaskRow> {
   const d = withDefaults(deps);
   const task = store.requireTask(taskId);
-  if (task.kind === 'single') {
+  if (task.kind === 'single' && !(await singleHasCommits(task))) {
     const last = store.listSteps(task.id).filter((s) => s.state === 'done').at(-1);
     store.setTaskState(task.id, 'done', last ? `step ${last.duty} done` : 'every step done');
     await releaseDependents(store, task.id, deps);

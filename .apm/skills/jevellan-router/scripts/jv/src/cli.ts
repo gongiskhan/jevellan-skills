@@ -60,8 +60,8 @@ export const COMMANDS: Readonly<Record<string, CommandEntry>> = {
   gc: { module: './commands/gc.js', booleans: ['dry-run'], usage: 'jv gc [--project N] [--dry-run]' },
   version: { module: './commands/version.js', usage: 'jv --version', internal: true },
 
-  bootstrap: { module: './commands/bootstrap.js', usage: 'jv bootstrap', internal: true },
-  update: { module: './commands/bootstrap.js', usage: 'jv update', internal: true },
+  bootstrap: { module: './commands/bootstrap.js', usage: 'jv bootstrap [--rebuild] [--source DIR] [--json]', internal: true },
+  update: { module: './commands/bootstrap.js', usage: 'jv update [--rebuild] [--source DIR] [--json]', internal: true },
   run: { module: './commands/run.js', usage: 'jv run --session R', internal: true, booleans: ['detach'] },
   exec: {
     module: './commands/exec.js',

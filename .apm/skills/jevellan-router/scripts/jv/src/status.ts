@@ -4,8 +4,9 @@
 // --json is what the coordinator reads: per task its id, title, kind, state, state_reason, current step (ordinal and
 // duty), the latest run's model, provider, runtime and state, the last report's status and summary, and, when the
 // task waits on the owner, the question and its options (a landing ask offers "Land now" and "Leave it").
-// Tasks that are done are left out; failed and stopped tasks are listed for 24 hours after they ended, and tasks
-// done in the last 24 hours are listed apart as `recent` (what landed today).
+// Tasks that are done are left out, and so are stopped ones: a task is stopped only when the owner discarded it, so
+// it is no open work (the viewer's first page and the handoff leave it out too, D-083). Failed tasks are listed for
+// 24 hours after they ended, and tasks done in the last 24 hours are listed apart as `recent` (what landed today).
 
 import { markLost } from './launcher.js';
 import { reportView } from './report.js';
@@ -13,7 +14,7 @@ import type { Store } from './store.js';
 import type { SessionRow, StepRow, TaskRow, TaskState } from './types.js';
 
 export const RECENT_MS = 24 * 60 * 60 * 1000;
-const ORDER: readonly TaskState[] = ['waiting-owner', 'running', 'landing', 'queued', 'failed', 'stopped', 'done'];
+const ORDER: readonly TaskState[] = ['waiting-owner', 'running', 'landing', 'queued', 'failed'];
 export const LANDING_OPTIONS = [
   { label: 'Land now', description: 'jv land T --force' },
   { label: 'Leave it', description: 'jv task stop T --discard' },
@@ -128,8 +129,8 @@ export function statusView(store: Store, options: { project?: string; now?: numb
   const recentCut = new Date(now - RECENT_MS).toISOString();
 
   const listed = tasks.filter((t) => {
-    if (t.state === 'done') return false;
-    if (t.state === 'failed' || t.state === 'stopped') return (t.ended_at ?? t.created_at) >= recentCut;
+    if (t.state === 'done' || t.state === 'stopped') return false;
+    if (t.state === 'failed') return (t.ended_at ?? t.created_at) >= recentCut;
     return true;
   });
   const statuses = listed

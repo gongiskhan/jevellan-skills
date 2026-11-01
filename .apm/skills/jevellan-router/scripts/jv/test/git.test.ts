@@ -155,3 +155,11 @@ test('runWorktreeSetup runs once per worktree, logs the output and records one e
     store.close();
   }
 });
+
+test('git fetch runs with the owner home, not a provider HOME (the coordinator\'s)', async () => {
+  const G2 = await import('../src/git.js');
+  const os = await import('node:os');
+  const env = G2.fetchEnv({ HOME: '/tmp/provider-home', PATH: '/usr/bin' });
+  assert.equal(env.HOME, os.userInfo().homedir);
+  assert.equal(env.PATH, '/usr/bin');
+});

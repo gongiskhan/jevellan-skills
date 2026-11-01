@@ -2,7 +2,8 @@
 // are ended by hand (state, report) and afterRun is awaited. No process, no model, no network.
 
 import assert from 'node:assert/strict';
-import { rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { after, beforeEach, test } from 'node:test';
 import { makeHome, writeSkill } from './fixtures/run-fixture.js';
@@ -188,6 +189,40 @@ test('a single task is done after its step, and a task waiting with --after star
   assert.equal(landed.length, 0, 'a single task does not land');
   assert.equal(store.requireTask(second.id).state, 'running', 'the dependent started');
   assert.equal(store.listSessions({ task_id: second.id }).length, 1);
+});
+
+test('a single task whose step committed on its branch lands like any other (D-078); one that committed nothing is done', async () => {
+  const env = { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.invalid', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.invalid' };
+  const g = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, env, encoding: 'utf8' }).trim();
+  const gitRepo = join(home, 'repos', 'single-docs');
+  mkdirSync(gitRepo, { recursive: true });
+  g(gitRepo, 'init', '-q', '-b', 'main');
+  writeFileSync(join(gitRepo, 'README.md'), '# app\n');
+  g(gitRepo, 'add', '-A');
+  g(gitRepo, 'commit', '-q', '-m', 'init');
+  const base = g(gitRepo, 'rev-parse', 'HEAD');
+  const single: Workflow = { name: 'single', steps: [{ duty: 'document', when: 'always', instructions: '' }] };
+  const make = (name: string) => {
+    const t = newTask(single, { kind: 'single' });
+    const wt = join(home, 'worktrees', 'single-docs', name);
+    g(gitRepo, 'worktree', 'add', '-q', '-b', `jv/${name}`, wt, 'main');
+    return store.updateTask(t.id, { worktree_path: wt, branch: `jv/${name}`, base_commit: base });
+  };
+  const docs = make('docs');
+  writeFileSync(join(docs.worktree_path!, 'README.md'), '# app\n\n## How to run\n');
+  g(docs.worktree_path!, 'commit', '-q', '-am', 'How to run');
+  assert.equal(await A.singleHasCommits(store.requireTask(docs.id)), true);
+  await A.startStep(store, docs.id, { reason: 'task created', deps });
+  await endRun(lastRun(docs.id).id, { status: 'done', summary: 'Added How to run.' });
+  assert.deepEqual(landed.map((l) => [l.task, l.auto]), [[docs.id, true]], 'the documented change lands');
+  assert.equal(store.requireTask(docs.id).state, 'done');
+
+  const nothing = make('nothing');
+  assert.equal(await A.singleHasCommits(store.requireTask(nothing.id)), false);
+  await A.startStep(store, nothing.id, { reason: 'task created', deps });
+  await endRun(lastRun(nothing.id).id, { status: 'done', summary: 'Nothing to change.' });
+  assert.equal(landed.length, 1, 'nothing committed: no landing');
+  assert.equal(store.requireTask(nothing.id).state, 'done');
 });
 
 test('progress continues the same native session with Continue., up to 20 times, then blocks', async () => {

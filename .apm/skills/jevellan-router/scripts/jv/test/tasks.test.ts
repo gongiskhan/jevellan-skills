@@ -466,3 +466,90 @@ test('message: typed at once into a live claude-tmux window; refused when only l
   await assert.rejects(T.messageTask(store, b.task.id, 'hello', { env: {}, deps }), /only landing is left/);
   assert.equal(store.listMessages({ task_id: b.task.id }).length, 0);
 });
+
+test('resume after a claude-sdk takeover imports what the owner did in the transcript, then continues (J6)', async () => {
+  const { attachSession } = await import('../src/attach.js');
+  const { claudeTranscriptPath } = await import('../src/transcript.js');
+  const { importTakeover, readTakeover, TAKEOVER_SOURCE } = await import('../src/takeover.js');
+  const { loadProviders } = await import('../src/providers.js');
+  const r = await T.createTask(store, input({ kind: 'single', duty: 'implement' }), deps);
+  const run = lastRun(r.task.id);
+  endRun(run.id, { status: 'done', summary: 'Added the empty state.' }, 'native-takeover');
+  const providerHome = join(home, 'homes', 'claude-main');
+  const transcript = claudeTranscriptPath(providerHome, run.cwd, 'native-takeover');
+  mkdirSync(join(transcript, '..'), { recursive: true });
+  const line = (v: unknown) => `${JSON.stringify(v)}\n`;
+  // The SDK turn's own records: already events of the run, never imported again.
+  writeFileSync(
+    transcript,
+    line({ type: 'user', timestamp: '2026-11-01T10:00:00.000Z', message: { role: 'user', content: 'Implement the empty state.' } }) +
+      line({ type: 'assistant', timestamp: '2026-11-01T10:00:05.000Z', message: { id: 'm0', role: 'assistant', content: [{ type: 'text', text: 'Done before the takeover.' }] } }),
+  );
+
+  const live = new Set<string>();
+  const tmux = (args: readonly string[]) => {
+    const t = (args[args.indexOf('-t') + 1] ?? '').replace(/^=/, '');
+    if (args[0] === 'has-session') return { status: live.has(t) ? 0 : 1, stdout: '', stderr: '' };
+    if (args[0] === 'new-session') live.add(args[args.indexOf('-s') + 1]!);
+    return { status: 0, stdout: '', stderr: '' };
+  };
+  const attached = attachSession(store, run.id, { tmux, providers: () => loadProviders(), tty: false, insideTmux: false, claude: '/opt/claude' });
+  assert.equal(attached.waiting, run.id);
+  assert.equal(readTakeover(store, run.id)!.file, transcript);
+  const eventsBefore = store.listEvents(run.id).length;
+
+  // What the owner does in the interactive claude: a message, a tool call and its result, a reply, then /exit.
+  writeFileSync(
+    transcript,
+    line({ type: 'user', timestamp: '2026-11-01T11:00:00.000Z', message: { role: 'user', content: 'Also hide the button for read-only users.' } }) +
+      line({
+        type: 'assistant',
+        timestamp: '2026-11-01T11:00:02.000Z',
+        message: { id: 'm1', role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_1', name: 'Edit', input: { file_path: 'src/customers.ts' } }] },
+      }) +
+      line({ type: 'user', timestamp: '2026-11-01T11:00:03.000Z', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'edited' }] } }) +
+      line({ type: 'assistant', timestamp: '2026-11-01T11:00:04.000Z', message: { id: 'm2', role: 'assistant', content: [{ type: 'text', text: 'The button is hidden for read-only users now.' }] } }) +
+      line({ type: 'user', isMeta: true, timestamp: '2026-11-01T11:00:05.000Z', message: { role: 'user', content: 'Caveat: local command output.' } }) +
+      line({ type: 'user', timestamp: '2026-11-01T11:00:06.000Z', message: { role: 'user', content: '<command-name>/exit</command-name>\n<command-message>exit</command-message>' } }),
+    { flag: 'a' },
+  );
+
+  // While the takeover window is open the run stays waiting and the resume is refused.
+  await assert.rejects(
+    T.resumeTask(store, r.task.id, { ...deps, tmuxSessionAlive: async () => true }),
+    (e: unknown) => e instanceof JvError && e.exitCode === 4 && /still open in tmux jv-/.test(e.message),
+  );
+  assert.equal(store.requireSession(run.id).state, 'waiting');
+  assert.match(store.requireSession(run.id).state_reason, /^attached by owner; the takeover window jv-\w+ is still open$/);
+  assert.equal(store.listEvents(run.id).length, eventsBefore, 'nothing imported while the window is open');
+
+  const res = await T.resumeTask(store, r.task.id, { ...deps, tmuxSessionAlive: async () => false });
+  assert.equal(res.how, 'native');
+  const ended = store.requireSession(run.id);
+  assert.equal(ended.state, 'done');
+  assert.equal(ended.state_reason, 'the owner ended the takeover; 4 transcript entries imported (1 typed by the owner); jv task resume continues');
+  const imported = store.listEvents(run.id).slice(eventsBefore).map((e) => ({ kind: e.kind, at: e.at, payload: JSON.parse(e.payload) as Record<string, unknown> }));
+  assert.deepEqual(
+    imported.map((e) => [e.kind, e.payload.source]),
+    [
+      ['message', TAKEOVER_SOURCE],
+      ['tool-call', TAKEOVER_SOURCE],
+      ['tool-result', TAKEOVER_SOURCE],
+      ['text', TAKEOVER_SOURCE],
+    ],
+  );
+  assert.deepEqual(imported[0]!.payload, { from: 'owner', role: 'user', text: 'Also hide the button for read-only users.', source: 'takeover' });
+  assert.equal(imported[0]!.at, '2026-11-01T11:00:00.000Z');
+  assert.equal(imported[1]!.payload.name, 'Edit');
+  assert.deepEqual([imported[2]!.payload.id, imported[2]!.payload.ok, imported[2]!.payload.output, imported[2]!.payload.name], ['toolu_1', true, 'edited', 'Edit']);
+  assert.equal(imported[3]!.payload.text, 'The button is hidden for read-only users now.');
+  assert.ok(!imported.some((e) => JSON.stringify(e.payload).includes('Done before the takeover')), 'the SDK turn is not imported again');
+
+  // The new turn continues the same conversation.
+  const next = store.requireSession(res.session!);
+  assert.equal(next.native_session_id, 'native-takeover');
+  assert.equal(runMessage(store, next.id), 'Continue.');
+  // An import happens once.
+  assert.ok(readTakeover(store, run.id)!.importedAt);
+  assert.equal(importTakeover(store, store.requireSession(run.id), { home: providerHome, windowOpen: false }).events, 0);
+});

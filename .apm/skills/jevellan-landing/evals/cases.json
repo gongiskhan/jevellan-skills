@@ -596,6 +596,348 @@
       "decisionId": null,
       "split": "dev",
       "note": "A CI deploy workflow changes production behaviour."
+    },
+    {
+      "id": "hand-land-small-ui-browser-checked",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "Empty state on the customers page",
+        "task": {
+          "id": "TL00008",
+          "kind": "feature",
+          "text": "When there are no customers, the customers page shows \"No customers yet\" instead of an empty table, with a test."
+        },
+        "summaries": [
+          {
+            "duty": "implement",
+            "summary": "The customers page renders \"No customers yet\" in place of the table when the list is empty. Added a browser test that loads the page with no customers and checks the message."
+          },
+          {
+            "duty": "verify",
+            "summary": "npm test passed (214 tests) and npm run test:browser passed (6 specs, including the new empty-state spec) at desktop and phone widths. Nothing else on the page changed."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": "src/pages/customers.tsx",
+            "bytes": 2410,
+            "additions": 9,
+            "deletions": 1,
+            "risky": false
+          },
+          {
+            "path": "tests/browser/customers.spec.ts",
+            "bytes": 980,
+            "additions": 14,
+            "deletions": 0,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 2,
+          "additions": 23,
+          "deletions": 1,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm test",
+            "passed": true,
+            "summary": "npm test: all tests passed"
+          },
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm run test:browser",
+            "passed": true,
+            "summary": "browser tests: 6 of 6 passed, including the new empty-state spec"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "land"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "A small UI change outside the risky areas, exercised by the browser test that passed: it lands for the owner to release later; it does not change production behaviour in the sense of the rules."
+    },
+    {
+      "id": "hand-land-readme-only",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "How to run section in the README",
+        "task": {
+          "id": "TL00009",
+          "kind": "feature",
+          "text": "README: add a How to run section listing the commands in package.json."
+        },
+        "summaries": [
+          {
+            "duty": "document",
+            "summary": "Added a \"How to run\" section to the README listing npm start, npm test, npm run test:browser and npm run lint with one line each."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": "README.md",
+            "bytes": 1840,
+            "additions": 18,
+            "deletions": 0,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 1,
+          "additions": 18,
+          "deletions": 0,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm test",
+            "passed": true,
+            "summary": "npm test: all tests passed"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "land"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "One documentation file outside the risky areas: land."
+    },
+    {
+      "id": "hand-land-new-unit-test-only",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "Unit test for formatDate",
+        "task": {
+          "id": "TL00010",
+          "kind": "feature",
+          "text": "Add a unit test for one untested pure function in src."
+        },
+        "summaries": [
+          {
+            "duty": "implement",
+            "summary": "Added src/utils/format-date.test.ts with five cases for formatDate (a date, midnight, a leap day, an invalid input, a time zone offset). No source file changed."
+          },
+          {
+            "duty": "verify",
+            "summary": "npm test passed (219 tests, the five new ones included)."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": "src/utils/format-date.test.ts",
+            "bytes": 1320,
+            "additions": 34,
+            "deletions": 0,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 1,
+          "additions": 34,
+          "deletions": 0,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm test",
+            "passed": true,
+            "summary": "npm test: all tests passed, including the five new formatDate cases"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "land"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "A new unit test only, passing, nothing else changed: land."
+    },
+    {
+      "id": "hand-land-invoice-count-display",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "sandbox-clone",
+          "guidance": ""
+        },
+        "title": "Invoice count on the invoices page",
+        "task": {
+          "id": "TWRJKYC",
+          "kind": "feature",
+          "text": "Show the number of invoices above the invoices table on the invoices page, with a unit or browser test."
+        },
+        "summaries": [
+          {
+            "duty": "implement",
+            "summary": "The invoices page now shows how many invoices there are, in a line directly above the table. With today's single sample invoice it reads \"1 invoice\". The count comes from the list of invoices the page actually renders, so it stays correct when more are added, and it says \"invoices\" for any number other than one (\"0 invoices\", \"3 invoices\").\n\nHow to try it: run `TZ=UTC SANDBOX_DATA_DIR=.sandbox-data npm start` and open http://127.0.0.1:4173/invoices. \"1 invoice\" appears between the \"Invoices\" heading and the table.\n\nWhat changed:\n- src/invoices/index.ts: new `invoiceCountLabel(count)` helper that handles singular and plural.\n- src/web/server.ts: the invoices page now builds its table rows from a small `invoices` list (still the same single \"Invoice 1\" at 25.00) and puts the count label above the table. Invoice names are now escaped the same way the customers page already escapes its values.\n- Tests: a unit test for the label (0, 1 and 3) in src/invoices/index.test.ts, and the invoices browser spec now also checks that \"1 invoice\" is visible.\n- CHANGELOG.md: added an entry, because the CI changelog check fails without one.\n\nThere was no plan.md, so I followed the existing code's style.\n\nTests run: the invoices unit tests (3 passed), the type check (`npm run lint`, clean) and the invoices browser spec (1 passed). Playwright's own browsers are not installed on this machine, so I ran the browser spec against the system Chrome using a temporary config, which I deleted afterwards. Nothing about that is committed."
+          },
+          {
+            "duty": "verify",
+            "summary": "Every check passed. The invoices page shows \"1 invoice\" on its own line, between the \"Invoices\" heading and the table, at both desktop and phone widths. Nothing else on the site changed.\n\n**What I checked**\n- **Project test command** (`TZ=UTC SANDBOX_DATA_DIR=.sandbox-data npm test`, run once in full): 2 test files, 4 tests, all passed. That includes the new invoice count label test (0, 1 and 3). Output is in .jv-evidence/tests.txt.\n- **Browser walk-through**: I started the app on a free port (4391) and clicked through it in Chrome at 1440×900 and 390×844. All 22 checks passed (11 per width):\n  - /invoices loads, shows \"1 invoice\" directly under the heading and right before the table, and the table still has one row: Invoice 1 at 25.00.\n  - No sideways scrolling on the invoices page at either width.\n  - The site root (/) shows the same invoices page with the count.\n  - The \"Customers\" nav link opens the Customers page, which has no invoice count. The \"Invoices\" link goes back and the count is still there.\n  \n  Results are in .jv-evidence/journeys.txt.\n- **The project's own browser tests** (tests/browser: invoices and customers): 2 of 2 passed. Playwright's bundled browsers aren't installed here, so I pointed a throwaway config (.jv-evidence/pw.config.ts) at the system Chrome and the server I started. Output is in .jv-evidence/browser-spec.txt.\n\n**What I couldn't check**\n- With today's single hard-coded invoice, the page can only show \"1 invoice\". \"0 invoices\" and \"3 invoices\" are covered by the unit test only, not in the browser.\n- The Customers table is empty because there is no customer data in .sandbox-data. That was already the case before this change, and the change doesn't touch that page.\n\nI stopped the dev server I started. I changed no code and committed nothing; everything I added is in .jv-evidence/, which git ignores."
+          }
+        ],
+        "riskyAreas": [],
+        "files": [
+          {
+            "path": "src/web/server.ts",
+            "bytes": 1905,
+            "additions": 3,
+            "deletions": 2,
+            "risky": false
+          },
+          {
+            "path": "src/invoices/index.test.ts",
+            "bytes": 693,
+            "additions": 2,
+            "deletions": 1,
+            "risky": false
+          },
+          {
+            "path": "tests/browser/invoices.spec.ts",
+            "bytes": 361,
+            "additions": 1,
+            "deletions": 1,
+            "risky": false
+          },
+          {
+            "path": "CHANGELOG.md",
+            "bytes": 105,
+            "additions": 1,
+            "deletions": 0,
+            "risky": false
+          },
+          {
+            "path": "src/invoices/index.ts",
+            "bytes": 479,
+            "additions": 1,
+            "deletions": 0,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 5,
+          "additions": 8,
+          "deletions": 4,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "duty": "implement",
+            "command": "TZ=UTC SANDBOX_DATA_DIR=.sandbox-data npx vitest run src/invoices/index.test.ts && npx tsc --noEmit && npx playwright test tests/browser/invoices.spec.ts (system Chrome channel via temporary config)",
+            "passed": true,
+            "summary": "Invoices unit tests: 3/3 passed, including the new count-label test. Type check clean. Invoices browser spec: 1/1 passed, including the new '1 invoice' check.",
+            "at": "2026-11-01T14:54:26.542Z"
+          },
+          {
+            "duty": "verify",
+            "command": "TZ=UTC SANDBOX_DATA_DIR=.sandbox-data npm test; Playwright journeys (.jv-evidence/journey.mjs) on /invoices, / and /customers at 1440x900 and 390x844; npx playwright test -c .jv-evidence/pw.config.ts (system Chrome)",
+            "passed": true,
+            "summary": "Unit tests: 4/4 passed in 2 files. Browser journeys: 22/22 checks passed at desktop and phone widths. Project browser tests: 2/2 passed. No failures.",
+            "at": "2026-11-01T14:55:32.649Z"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "land"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "The real landing of 1 November (decision DKW70WF, sandbox-clone) that Jev sent to ask-owner at 0.88: five small files (a count label above the invoices table, its unit test, one line in a browser spec, a changelog line), no risky paths, unit and browser checks passed. A display-only change that lands on the default branch for the owner to release later; nothing about amounts, billing or stored invoices changed."
     }
   ]
 }

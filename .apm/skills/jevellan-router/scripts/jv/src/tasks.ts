@@ -50,6 +50,7 @@ import {
   type ProvidersConfig,
 } from './providers.js';
 import { reportView, type ReportView } from './report.js';
+import { ATTACHED_REASON, importTakeover } from './takeover.js';
 import {
   askWorkflowQuestions,
   dutyRuntimes,
@@ -81,6 +82,8 @@ export interface TaskDeps extends AdvanceDeps {
   stopRun: (store: Store, sessionId: string, reason: string) => Promise<unknown>;
   /** Types a message into the live window of a claude-tmux conversation; false when no window is alive. */
   typeIntoLive: (store: Store, session: SessionRow, message: string) => Promise<boolean>;
+  /** Whether a tmux session of exactly this name exists (the owner's takeover window of jv attach). */
+  tmuxSessionAlive: (name: string) => Promise<boolean>;
   loadProviders: () => ProvidersConfig;
   now: () => number;
 }
@@ -103,6 +106,10 @@ export function defaultTaskDeps(): TaskDeps {
       } catch {
         return false;
       }
+    },
+    tmuxSessionAlive: async (name) => {
+      const { hasSession, runTmux } = await import('./runtimes/claude-tmux.js');
+      return hasSession(runTmux, name.replace(/^=/, '').replace(/:$/, ''));
     },
     loadProviders: () => loadProviders(),
     now: () => Date.now(),
@@ -770,6 +777,21 @@ export interface ResumeResult {
 const RESUMABLE_RUN_STATES = ['lost', 'stopped', 'failed', 'waiting', 'done'];
 
 /**
+ * The end of the owner's takeover of a waiting run (jv attach): for claude-sdk, the transcript entries the owner
+ * added become events of the run first (takeover.ts; refused with exit 4 while the takeover window is open). Returns
+ * the reason the run is marked done with.
+ */
+async function endTakeover(store: Store, run: SessionRow, d: TaskDeps): Promise<string> {
+  const fallback = 'the owner ended the takeover; jv task resume continues';
+  if (run.runtime !== 'claude-sdk' || !run.state_reason.startsWith(ATTACHED_REASON)) return fallback;
+  const home = d.loadProviders().providers.find((p) => p.name === run.provider)?.home;
+  if (home === undefined) return `${fallback} (no home for ${run.provider}; the takeover was not imported)`;
+  const window = run.tmux_target ?? `jv-${run.id}`;
+  const imported = importTakeover(store, run, { home, windowOpen: await d.tmuxSessionAlive(window) });
+  return `${imported.reason}; jv task resume continues`;
+}
+
+/**
  * Continues a task: asks the workflow questions when they were never answered, then resumes the current step's
  * latest run natively when it has a native session (a new run row with the same native_session_id: J7, J6), else
  * places and starts the step (J9). A task whose steps are all done goes to landing.
@@ -805,7 +827,7 @@ export async function resumeTask(store: Store, id: string, deps: Partial<TaskDep
   }
   const last = latestRun(store, task.id, step.id);
   if (last?.native_session_id && RESUMABLE_RUN_STATES.includes(last.state)) {
-    if (last.state === 'waiting') store.setSessionState(last.id, 'done', 'the owner ended the takeover; jv task resume continues');
+    if (last.state === 'waiting') store.setSessionState(last.id, 'done', await endTakeover(store, last, d));
     if (step.state === 'failed' || step.state === 'pending') store.setStepState(step.id, 'running', `resumed by the owner (${last.id})`);
     const run = continueRun(store, store.requireSession(last.id), {
       requestId: `resume:${last.id}`,

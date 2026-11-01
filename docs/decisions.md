@@ -660,3 +660,83 @@ exit 0 without running. The runner prints `<split> agreement: <n>%` lines (`held
 `agreement:` line for the split it ran, and exits 0 at or above its threshold and 1 below it; any other exit is a
 runner failure. A change is kept only if held-out agreement beats the baseline run by more than the noise and the
 runner still exits 0. Skillio's side is https://github.com/gongiskhan/skillio/pull/2 (not merged).
+
+## D-070 The coordinator loads the provider home's settings only, and its prompt carries AGENTS.md
+
+The coordinator runs in the project checkout, which is under the owner's home, and Claude Code loads CLAUDE.md and
+`.claude/rules` from every ancestor folder of its cwd, so the owner's own `~/.claude/CLAUDE.md` and rules reached it
+as project instructions (findings: its voice was overridden). It is now started with `--setting-sources user`, as
+the workers are (D-058). With project instructions no longer loaded, `coordinator-prompt.md` gets the project's
+`AGENTS.md` after the skill body and before the handoff, under "# This project's AGENTS.md": the first 32 KiB, a
+longer file cut with the same note `prompt.projectInstructions` uses for workers, through the redactor. User scope is
+`<claude-main home>/.claude/`, where seed() installs the fourteen `jevellan-*` skills, the coordinator agent and the
+Stop hook (D-015, D-008), so all of them still load (checked on dev-madrid after jv update: the home's skill copies
+match `~/.jv/skills`); only the project's APM-merged `.claude/settings.json` hook is dropped, which exits 0 for the
+coordinator anyway (D-016).
+
+## D-071 The coordinator's own login and Remote Control (amends D-023, D-054 and D-061)
+
+A `.credentials.json` in a Claude home is "seeded" only while seeds-applied.json lists it under `files`, it still has
+the recorded byte size, and no `archived` entry has moved it away since; any other file there is a login of the
+home's own (`claudeLoginOrigin`). When in doubt it counts as the owner's, because jv must never archive a login it did
+not copy.
+When claude-main has a tokenFile and its home holds its own login, the coordinator runs on that login: `jv exec
+--home-login` builds its environment without `CLAUDE_CODE_OAUTH_TOKEN`, and claude gets `--remote-control
+jv-<project>` (the task's name for it; D-054 named it `jv-coord-<project>`, which stays the tmux name). Otherwise it
+runs as before: no tokenFile means the home's login and Remote Control; a tokenFile alone means the token and no
+Remote Control, and `jv coordinator status` prints exactly `jv providers login claude-main` as the command that
+turns it on (recomputed at each status, and `jv coordinator restart --project N` once that login exists). `jv
+providers login claude-main` is no longer refused for its tokenFile: it runs `claude auth login` under `--home-login`
+in `jv-login-claude-main`; every other provider with a tokenFile is still refused with the file to write. Workers never
+get `--home-login`, so the token wins for them (D-003). D-023's concern was a second live copy of Jevellan's refresh
+token; a login made in the home is its own grant. The archive step of D-023 now moves only a seeded copy: once
+archived, a file at that path is never archived or moved again, which fixes `jv update` archiving a login the owner
+made after an earlier archive (claude-second's record on dev-madrid had exactly that shape).
+
+## D-072 What "production behaviour" means in the landing policy
+
+Jev sent the invoice-count change of 1 November (DKW70WF: five small files, unit and browser checks passed, no risky
+paths) to ask-owner at 0.88. The three route criteria stay verbatim; `landing_route` and the Production rule now say
+that landing only puts a change on the default branch for the owner to release later, that production behaviour
+means deployed systems, live data, credentials, billing, infrastructure and deploy configuration, and not ordinary
+feature, UI, test or documentation changes, that such a change, small, outside the risky areas and covered by the
+passing checks, lands, and that a behaviour change the checks do not exercise is verify-then-land. Measured with the
+11 cases (4 new hand cases, all dev, so held-out stays the same 2): before 9/11, held-out 2/2; with the production
+wording alone still 9/11 (the invoice case fell to ask-owner 0.69, the deploy case moved further to
+verify-then-land, 0.69). Two more sentences were needed and kept: a change to production behaviour goes to the owner
+however small, because no pre-landing check exercises a deployed system (deploy case back to ask-owner, 0.59); and a
+change that only displays something about a risky area (money here) without changing how it is computed, stored,
+charged or sent does not touch it, since "invoices" in the money list was what kept the real case at ask-owner. Final
+run 11/11, held-out 2/2; migration 0.94 and session expiry 0.92 stay ask-owner.
+
+## D-073 jv doctor checks the Stop hook of registered projects only
+
+The hook line looks up the registered project whose checkout holds the current directory (symlinks resolved, the
+longest match); anywhere else it is OK with "not inside a registered project; skipped" and no fix. Telling the owner
+to run `apm install` in an arbitrary repository would write a `.claude/` folder there, this package's checkout
+included. Task worktrees under `~/.jv/worktrees` are not checkouts of a project and are skipped too.
+
+## D-074 jv exec installs its signal handlers before it spawns the child
+
+`exec.test.ts` "SIGTERM to jv exec reaches the child" failed 6 times in 30 runs under CPU load (exit code null: jv
+exec itself died of SIGTERM). The handlers were installed right after `spawn()` returned, but the child runs as soon
+as it is forked: it printed "ready", the test sent SIGTERM, and the default action killed jv exec in that window,
+leaving the child running on its own. The same window exists for tmux and the owner. runExec now installs the
+forwarding and ignoring handlers first and delivers a signal that arrived before the child existed right after the
+spawn; 0 failures in 30 runs under the same load.
+
+## D-075 A takeover is imported before the run resumes (amends D-062)
+
+`jv attach` on a claude-sdk run records meta `takeover:<R>` = `{file, offset, at}`: the conversation's transcript
+(`<provider home>/.claude/projects/<cwd slug>/<native id>.jsonl`) and its size then. `jv task resume` on that waiting
+run first imports what was appended after that offset as events of the attached run, every payload with `source:
+"takeover"`: what the owner typed as `message` (from owner, role user; slash-command markup and meta records left
+out), assistant text and thinking, tool calls and results (trimmed as D-027), each at its transcript timestamp; then
+the run is done with "the owner ended the takeover; N transcript entries imported (M typed by the owner)" and the new
+turn continues the same native session. While the takeover window (`jv-<R>`) is still open the run stays waiting,
+its reason names the window, and the resume exits 4: two writers on one conversation would interleave, as attach
+refuses while a turn runs. An import is recorded in the meta row and happens once. A run attached before this has no
+offset; then the entries later than its last event are taken. No usage is imported (the SDK's cumulative totals of the
+next turn are counted as D-027 says). Codex takeovers are only marked done, as before. Not yet seen on dev-madrid:
+that `claude --resume <id>` in the takeover window appends to the same file (findings list it as not exercised); if
+it wrote elsewhere, nothing would be imported and the reason would say nothing was typed.

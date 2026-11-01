@@ -14,7 +14,8 @@
 //   7. links <home>/.jv to $JV_HOME in every Claude provider home, so a "~/.jv/..." path (the APM hook of a
 //      project's .claude/settings.json) resolves under that HOME too (D-016);
 //   8. archives a seeded .credentials.json of a Claude subscription that logs in with its tokenFile (D-003): jv
-//      never uses it, and a second live copy of a refresh token can sign the original out.
+//      never uses it, and a second live copy of a refresh token can sign the original out. Only the copy the seed
+//      made, once: a .credentials.json jv did not seed (the owner's own login) is never archived or removed.
 //
 // Everything is idempotent. Nothing is deleted: an unreadable .claude.json is moved aside, never removed. Every
 // provider home is checked again (providerHomeProblem) before anything is written into it.
@@ -205,9 +206,40 @@ export function seedFileMap(p: Provider): Array<[string, string]> {
   return [];
 }
 
-function readSeedsApplied(file: string): Record<string, SeedRecord> {
+/** $JV_HOME/seeds-applied.json: what each seed copied (paths and byte sizes), by provider. {} when missing. */
+export function readSeedsApplied(file: string = join(paths.home, SEEDS_APPLIED_FILE)): Record<string, SeedRecord> {
   const r = readJsonFile(file);
   return r.ok && isPlainObject(r.value) ? (r.value as Record<string, SeedRecord>) : {};
+}
+
+/**
+ * Where a Claude home's .credentials.json came from: `none` (no file), `seeded` (the copy a seed made, still in
+ * place: seeds-applied.json lists it under files with its size, and no archive entry has moved it away since), or `own` (any other
+ * file: a login the owner made in that home, with jv providers login or by hand). Only a `seeded` file may ever be
+ * archived by jv, and only an `own` one is a login of the home's own that the coordinator may run on (D-054).
+ */
+export function claudeLoginOrigin(p: Provider, record: SeedRecord | undefined): 'none' | 'seeded' | 'own' {
+  if (!CLAUDE_KINDS.includes(p.kind) || p.home === undefined) return 'none';
+  const file = resolve(join(p.home, '.claude', '.credentials.json'));
+  if (!existsSync(file)) return 'none';
+  const files = Array.isArray(record?.files) ? record.files : [];
+  const archived = Array.isArray(record?.archived) ? record.archived : [];
+  // The copy is still the one the seed made only while it has the recorded size: a file written over it (a login
+  // made by hand) is not jv's to move.
+  let size: number | undefined;
+  try {
+    size = statSync(file).size;
+  } catch {
+    size = undefined;
+  }
+  const copied = files.some((f) => typeof f?.to === 'string' && resolve(f.to) === file && (typeof f.bytes !== 'number' || f.bytes === size));
+  const movedAway = archived.some((a) => typeof a?.from === 'string' && resolve(a.from) === file);
+  return copied && !movedAway ? 'seeded' : 'own';
+}
+
+/** Whether a Claude subscription's home holds a login jv did not seed (see claudeLoginOrigin). */
+export function hasOwnClaudeLogin(p: Provider, applied: Record<string, SeedRecord> = readSeedsApplied()): boolean {
+  return p.kind === 'claude-subscription' && claudeLoginOrigin(p, applied[p.name]) === 'own';
 }
 
 /** Whether a .claude.json is the minimal one jv writes (its only key is hasCompletedOnboarding). */
@@ -293,13 +325,15 @@ export function seedProviderHome(p: Provider, source: string): { applied: boolea
 
 /**
  * Moves a seeded .credentials.json out of a home that logs in with its tokenFile, into
- * $JV_HOME/archive/credentials/ (mode 700; the file keeps mode 600 and stays masked by the redactor). Only a file
- * the seed record says jv copied is moved. Returns the archive path, or undefined when there was nothing to move.
+ * $JV_HOME/archive/credentials/ (mode 700; the file keeps mode 600 and stays masked by the redactor). Only the copy
+ * the seed made is moved (claudeLoginOrigin `seeded`): once archived, a .credentials.json at that path is a login the
+ * owner made (jv providers login for the coordinator) and is never touched again. Returns the archive path, or
+ * undefined when there was nothing to move.
  */
 export function archiveUnusedSeededLogin(p: Provider, record: SeedRecord | undefined): { from: string; to: string } | undefined {
   if (!usesTokenFile(p) || p.home === undefined || !record) return undefined;
   const file = join(p.home, '.claude', '.credentials.json');
-  if (!record.files.some((f) => resolve(f.to) === resolve(file)) || !existsSync(file)) return undefined;
+  if (claudeLoginOrigin(p, record) !== 'seeded') return undefined;
   const dir = join(paths.archiveDir, ARCHIVED_CREDENTIALS_DIR);
   ensureDir(paths.archiveDir);
   ensureDir(dir, 0o700);

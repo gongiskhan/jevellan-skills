@@ -47,10 +47,20 @@ await seed({
   nodePath: process.execPath,
 });
 
-// A project to run the doctor in.
+// A project to run the doctor in, registered in the store (the hook line checks registered projects only).
 const project = join(root, 'proj');
 mkdirSync(project);
 execFileSync('git', ['init', '-q', '-b', 'main', project]);
+{
+  const { openStore } = await import('../src/store.js');
+  const store = openStore();
+  store.createProject({ name: 'proj', path: project, default_branch: 'main' });
+  store.close();
+}
+// A git repository that is not a registered project (this package's own checkout, say).
+const unregistered = join(root, 'elsewhere');
+mkdirSync(unregistered);
+execFileSync('git', ['init', '-q', '-b', 'main', unregistered]);
 
 interface Call {
   command: string;
@@ -382,7 +392,26 @@ describe('jv doctor', () => {
       JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: 'command', command: 'node ~/.jv/runtime/dist/report-guard.mjs' }] }] } }),
     );
     assert.equal((await D.runChecks(['hook'], deps()))[0]!.status, 'OK');
-    assert.equal((await D.runChecks(['hook'], deps({ cwd: root })))[0]!.status, 'OK');
+    // A folder inside the registered project is checked against the project's settings too.
+    mkdirSync(join(project, 'src'), { recursive: true });
+    const nested = (await D.runChecks(['hook'], deps({ cwd: join(project, 'src') })))[0]!;
+    assert.equal(nested.status, 'OK');
+    assert.match(nested.detail, /is registered in/);
+  });
+
+  test('the hook line outside a registered project is OK and skipped, never "run apm install there"', async () => {
+    for (const cwd of [unregistered, root, join(root, 'jvhome')]) {
+      const [line] = await D.runChecks(['hook'], deps({ cwd }));
+      assert.equal(line!.status, 'OK', cwd);
+      assert.equal(line!.detail, 'not inside a registered project; skipped');
+      assert.equal(line!.fix, undefined);
+    }
+    // A sibling folder whose name starts with the project's is not inside it.
+    const sibling = `${project}-other`;
+    mkdirSync(sibling, { recursive: true });
+    assert.equal((await D.runChecks(['hook'], deps({ cwd: sibling })))[0]!.detail, 'not inside a registered project; skipped');
+    assert.equal(D.registeredProjectAt(join(project, 'src'), [{ name: 'proj', path: project }])?.name, 'proj');
+    assert.equal(D.registeredProjectAt(sibling, [{ name: 'proj', path: project }]), undefined);
   });
 
   test('disk, node and an invalid providers.json', async () => {

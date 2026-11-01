@@ -3,8 +3,8 @@
 // - claude-tmux: `tmux attach -t jv-<R>`, the live window of the conversation (any of its rows' tmux targets).
 // - claude-sdk: `tmux new-session -A -s jv-<R> -c <cwd> <jv exec --session R> -- claude --resume <native id>` with the
 //   session's model and effort, after the provider home's first-run answers (prepareClaudeInteractiveHome); the newest
-//   run of the conversation is marked `waiting` with reason "attached by owner", and `jv task resume` continues it
-//   with a new turn when the owner is done.
+//   run of the conversation is marked `waiting` with reason "attached by owner", and `jv task resume` imports what
+//   the owner did in the transcript as events of that run (takeover.ts), then continues it with a new turn.
 // - codex: the same with `codex resume <thread id>` (the SDK's Codex binary, codexExecutable).
 // - llm: refused; a plain answer has no interactive form.
 //
@@ -31,9 +31,10 @@ import {
 } from './runtimes/claude-tmux.js';
 import { codexExecutable, PROJECT_DOC_MAX_BYTES } from './runtimes/codex.js';
 import type { Store } from './store.js';
+import { ATTACHED_REASON, recordTakeoverStart } from './takeover.js';
 import type { SessionRow } from './types.js';
 
-export const ATTACHED_REASON = 'attached by owner';
+export { ATTACHED_REASON } from './takeover.js';
 
 export interface AttachDeps {
   tmux?: TmuxRunner;
@@ -129,6 +130,8 @@ export function attachSession(store: Store, sessionId: string, deps: AttachDeps 
       if (r.status !== 0) throw refused(`tmux could not start ${target}: ${r.stderr.trim().split('\n')[0] ?? ''}`);
       created = true;
     }
+    // Where the transcript ends now: jv task resume imports what the owner adds after it (takeover.ts).
+    if (session.runtime === 'claude-sdk') recordTakeoverStart(store, newest, provider.home);
     store.setSessionState(newest.id, 'waiting', ATTACHED_REASON, { tmux_target: target });
     waiting = newest.id;
   }

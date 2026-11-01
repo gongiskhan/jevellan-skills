@@ -327,7 +327,7 @@ describe('seed edge cases', () => {
     // Simulate an earlier bootstrap that copied a login into the token home.
     const file = join(main.home!, '.claude', '.credentials.json');
     writeFileSync(file, FAKE_CREDS, { mode: 0o600 });
-    const record = { source: srcSecond, at: '2026-11-01T00:00:00.000Z', files: [{ from: join(srcSecond, '.credentials.json'), to: file, bytes: 1 }] };
+    const record = { source: srcSecond, at: '2026-11-01T00:00:00.000Z', files: [{ from: join(srcSecond, '.credentials.json'), to: file, bytes: Buffer.byteLength(FAKE_CREDS) }] };
     const notRecorded = S.archiveUnusedSeededLogin(main, { ...record, files: [] });
     assert.equal(notRecorded, undefined);
     assert.ok(existsSync(file));
@@ -340,6 +340,44 @@ describe('seed edge cases', () => {
     // A subscription without a tokenFile keeps its login.
     const second = loadProviders().providers.find((x) => x.name === 'claude-second')!;
     assert.equal(S.archiveUnusedSeededLogin(second, record), undefined);
+  });
+
+  test("jv update never archives a .credentials.json jv did not seed: the owner's own login after an archive stays", async () => {
+    const main = loadProviders().providers.find((x) => x.name === 'claude-main')!;
+    const file = join(main.home!, '.claude', '.credentials.json');
+    const appliedFile = join(home, 'seeds-applied.json');
+    const applied = JSON.parse(readFileSync(appliedFile, 'utf8')) as Record<string, import('../src/seeds.js').SeedRecord>;
+    // dev-madrid's claude-second: a seeded copy, archived by an earlier update (D-023).
+    const seededCopy = { from: join(srcSecond, '.credentials.json'), to: file, bytes: 10 };
+    const archivedEntry = { from: file, to: join(home, 'archive', 'credentials', 'claude-main-earlier.credentials.json'), at: '2026-11-01T12:00:00.000Z', why: 'test' };
+    applied['claude-main'] = { ...applied['claude-main']!, files: [...applied['claude-main']!.files, seededCopy], archived: [archivedEntry] };
+    writeFileSync(appliedFile, JSON.stringify(applied, null, 2), { mode: 0o600 });
+    assert.equal(S.claudeLoginOrigin(main, applied['claude-main']), 'none');
+    // The owner signs in with jv providers login claude-main: a new file at the same path.
+    const OWN = '{"claudeAiOauth":{"accessToken":"fake-own-login-for-tests-666777"}}';
+    writeFileSync(file, OWN, { mode: 0o600 });
+    assert.equal(S.claudeLoginOrigin(main, applied['claude-main']), 'own');
+    assert.equal(S.hasOwnClaudeLogin(main, applied), true);
+    assert.equal(S.archiveUnusedSeededLogin(main, applied['claude-main']), undefined);
+    try {
+      const update = await S.seed(opts);
+      assert.deepEqual(update.archivedLogins, {});
+      assert.equal(readFileSync(file, 'utf8'), OWN, 'the login is where it was, unchanged');
+      const after = JSON.parse(readFileSync(appliedFile, 'utf8')) as Record<string, import('../src/seeds.js').SeedRecord>;
+      assert.equal(after['claude-main']!.archived!.length, 1, 'no second archive entry');
+      // The seeded copy itself, still in place and never archived, is "seeded" and is the one thing that is archived.
+      const pristine = { source: srcSecond, at: '2026-11-01T00:00:00.000Z', files: [{ ...seededCopy, bytes: Buffer.byteLength(OWN) }] };
+      assert.equal(S.claudeLoginOrigin(main, pristine), 'seeded');
+      assert.equal(S.hasOwnClaudeLogin(main, { 'claude-main': pristine }), false);
+      // A file written over the seeded copy by hand (another size) is not the copy any more: never archived.
+      const replaced = { ...pristine, files: [seededCopy] };
+      assert.equal(S.claudeLoginOrigin(main, replaced), 'own');
+      assert.equal(S.archiveUnusedSeededLogin(main, replaced), undefined);
+      // A login no seed record names at all is the home's own too.
+      assert.equal(S.claudeLoginOrigin(main, undefined), 'own');
+    } finally {
+      rmSync(file, { force: true });
+    }
   });
 
   test('the minimal .claude.json jv wrote before seeds.json existed is replaced by the seed', () => {

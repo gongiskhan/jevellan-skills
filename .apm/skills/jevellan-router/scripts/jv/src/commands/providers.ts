@@ -19,8 +19,11 @@
 //
 // login <name>: `jv exec --provider <name> -- claude` (Claude subscriptions without a tokenFile) or `-- codex login`
 // (Codex) in the tmux session jv-login-<name>, in the provider home, for the owner to sign in once; in a terminal
-// jv attaches to it, otherwise it prints the attach command. A provider that logs in with a key or token file is
-// refused with the file to write.
+// jv attaches to it, otherwise it prints the attach command. The coordinator's provider (claude-main) may have a
+// tokenFile and still take a login of its own: `jv exec --provider claude-main --home-login -- claude auth login`
+// writes <home>/.claude/.credentials.json, which the coordinator then runs on, with Remote Control (D-054); its
+// workers keep the token (D-003). Any other provider that logs in with a key or token file is refused with the file
+// to write.
 
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -29,6 +32,7 @@ import { listClaudeModels, probeClaude, type ClaudeProbe, type ClaudeUsage, type
 import { listCodexModels, probeCodex, type CodexOfferedModel, type CodexProbe } from '../codex-control.js';
 import type { CommandIo, ParsedArgs } from '../command.js';
 import { requirePositional } from '../command.js';
+import { COORDINATOR_PROVIDER } from '../coordinator.js';
 import { probeEnvironment } from '../doctor.js';
 import { notFound, refused } from '../errors.js';
 import { jevClient } from '../jev/client.js';
@@ -427,6 +431,8 @@ export interface LoginResult {
   command: string[];
   created: boolean;
   attached: boolean;
+  /** What the login is for when it is not the provider's worker login (the coordinator's own login). */
+  note?: string;
 }
 
 export function loginSessionName(provider: string): string {
@@ -440,9 +446,14 @@ export function loginProvider(name: string, deps: LoginDeps = {}): LoginResult {
   const p = config.providers.find((x) => x.name === name);
   if (!p) throw notFound(`no provider ${name} in ${config.file}`);
   let command: string[];
+  let homeLogin = false;
   if (p.kind === 'claude-subscription') {
-    if (p.tokenFile) throw refused(`${name} logs in with its token file (${p.tokenFile}), not an interactive login: ${loginFix(p, 'needs-login')}`);
-    command = [deps.claude ?? executableOnPath('claude')];
+    if (p.tokenFile && p.name !== COORDINATOR_PROVIDER) {
+      throw refused(`${name} logs in with its token file (${p.tokenFile}), not an interactive login: ${loginFix(p, 'needs-login')}`);
+    }
+    // With a tokenFile, the token must stay out of the login's environment: Claude Code would use it and never ask.
+    homeLogin = p.tokenFile !== undefined;
+    command = homeLogin ? [deps.claude ?? executableOnPath('claude'), 'auth', 'login'] : [deps.claude ?? executableOnPath('claude')];
   } else if (p.kind === 'codex-subscription') {
     command = [deps.codex ?? codexExecutable(), 'login'];
   } else {
@@ -451,7 +462,7 @@ export function loginProvider(name: string, deps: LoginDeps = {}): LoginResult {
   const target = loginSessionName(name);
   let created = false;
   if (!hasSession(tmux, target)) {
-    const r = tmux(['new-session', '-d', '-s', target, '-c', p.home!, ...tmuxEnvArgs(), ...jvExecArgv({ provider: name }, command)]);
+    const r = tmux(['new-session', '-d', '-s', target, '-c', p.home!, ...tmuxEnvArgs(), ...jvExecArgv({ provider: name }, command, { homeLogin })]);
     if (r.status !== 0) throw refused(`tmux could not start ${target}: ${r.stderr.trim().split('\n')[0] ?? ''}`);
     created = true;
   }
@@ -463,7 +474,20 @@ export function loginProvider(name: string, deps: LoginDeps = {}): LoginResult {
     const interactive = deps.interactive ?? ((a: string[]) => spawnSync('tmux', a, { stdio: 'inherit' }).status ?? 1);
     attached = interactive(attach.slice(1)) === 0;
   }
-  return { provider: name, tmuxTarget: target, command: attach, created, attached };
+  return {
+    provider: name,
+    tmuxTarget: target,
+    command: attach,
+    created,
+    attached,
+    ...(homeLogin
+      ? {
+          note:
+            `This login is the coordinator's own (Remote Control needs it); ${name}'s workers keep signing in with ${p.tokenFile}. ` +
+            'Once signed in, jv coordinator restart --project N starts the coordinator on it with Remote Control.',
+        }
+      : {}),
+  };
 }
 
 // ---- the command --------------------------------------------------------------------------------------------
@@ -483,11 +507,12 @@ export async function run(args: ParsedArgs, io: CommandIo): Promise<number> {
   if (sub === 'login') {
     const name = requirePositional(args, 1, 'the provider name (jv providers login <name>)');
     const result = loginProvider(name, io.json ? { tty: false } : {});
-    io.result(result, () =>
-      result.attached
+    io.result(result, () => {
+      const text = result.attached
         ? `Left ${result.tmuxTarget}. Run jv providers check to record the login.`
-        : `${result.created ? 'Started' : 'Found'} ${result.tmuxTarget}: sign in there, then run jv providers check.\nAttach with: ${result.command.join(' ')}`,
-    );
+        : `${result.created ? 'Started' : 'Found'} ${result.tmuxTarget}: sign in there, then run jv providers check.\nAttach with: ${result.command.join(' ')}`;
+      return result.note ? `${text}\n${result.note}` : text;
+    });
     return 0;
   }
   throw refused(`unknown subcommand "${sub}" (jv providers check | jv providers login <name>)`);

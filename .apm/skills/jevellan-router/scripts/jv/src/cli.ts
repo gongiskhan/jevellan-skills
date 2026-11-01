@@ -63,7 +63,12 @@ export const COMMANDS: Readonly<Record<string, CommandEntry>> = {
   bootstrap: { module: './commands/bootstrap.js', usage: 'jv bootstrap', internal: true },
   update: { module: './commands/bootstrap.js', usage: 'jv update', internal: true },
   run: { module: './commands/run.js', usage: 'jv run --session R', internal: true, booleans: ['detach'] },
-  exec: { module: './commands/exec.js', usage: 'jv exec --session R | --provider P -- <command...>', internal: true },
+  exec: {
+    module: './commands/exec.js',
+    usage: 'jv exec --session R | --provider P [--home-login] -- <command...>',
+    internal: true,
+    booleans: ['home-login'],
+  },
 };
 
 /**

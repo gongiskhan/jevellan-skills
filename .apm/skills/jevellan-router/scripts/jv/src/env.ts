@@ -94,6 +94,8 @@ export interface MinimalEnvironmentOptions {
   nodeBinary?: string;
   /** The owner's own home, where ~/.cache/ms-playwright lives (default: ownerHome()). */
   ownerHome?: string;
+  /** Sign in with the home's own .credentials.json, not the tokenFile (providers.providerEnv). */
+  homeLogin?: boolean;
 }
 
 function joinPath(first: readonly string[], rest: string | undefined): string {
@@ -114,7 +116,7 @@ export function minimalEnvironment(options: MinimalEnvironmentOptions): Record<s
   const node = options.nodeBinary ?? bootstrapNode();
   env.PATH = joinPath([dirname(node), paths.binDir], base.PATH);
 
-  const login = providerEnv(p);
+  const login = providerEnv(p, { homeLogin: options.homeLogin === true });
   if (login.missing) throw refused(`provider ${p.name}: key file ${login.missing} is missing or empty`);
   if (login.env.HOME === undefined) throw refused(`provider ${p.name} (${p.kind}) has no home; it cannot run a worker session`);
   Object.assign(env, login.env);

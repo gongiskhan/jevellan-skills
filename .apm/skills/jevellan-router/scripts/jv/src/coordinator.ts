@@ -12,14 +12,23 @@
 //    (<home>/.claude/settings.json skipDangerousModePermissionPrompt), plus hasCompletedOnboarding. Idempotent,
 //    every other key kept, written before claude starts.
 // 4. Writes ~/.jv/projects/<name>/coordinator-prompt.md: the jevellan-coordinator skill body with {{project}},
-//    {{path}}, {{default_branch}} and {{jv}} filled (the body carries the project block), then the handoff (9.5).
+//    {{path}}, {{default_branch}} and {{jv}} filled (the body carries the project block), the project's AGENTS.md
+//    (first 32 KiB, as workers get it), then the handoff (9.5).
 // 5. Creates the sessions row (kind coordinator, runtime claude-tmux, native_session_id = the uuid passed to
 //    --session-id) and starts, in tmux:
-//      <jv> exec --session <R> --project <name> -- <claude> [--remote-control jv-coord-<name>] --model <model>
-//        --effort <effort> --append-system-prompt-file <prompt> --permission-mode bypassPermissions --session-id <uuid>
+//      <jv> exec --session <R> --project <name> [--home-login] -- <claude> [--remote-control jv-<name>]
+//        --model <model> --effort <effort> --append-system-prompt-file <prompt> --permission-mode bypassPermissions
+//        --session-id <uuid> --setting-sources user
 //    so HOME, the token and JV_SESSION/JV_PROJECT reach claude through jv exec's environment, never argv (D-007).
+//    --setting-sources user: the checkout is under the owner's home, and Claude Code loads CLAUDE.md and
+//    .claude/rules from every ancestor folder of the cwd, so without it the owner's own ~/.claude rules reached the
+//    coordinator; the project's AGENTS.md is in the prompt instead, and the jevellan skills and agent are at user
+//    scope of the provider home (D-015).
 //    --remote-control is passed only when the provider's login can use it: Claude Code refuses Remote Control for
-//    a long-lived token (tokenFile, D-003), and `jv coordinator status` then says so with the exact refusal.
+//    a long-lived token (tokenFile, D-003). A claude-subscription with a tokenFile whose home also holds a login jv
+//    did not seed (jv providers login claude-main) runs the coordinator on that login (--home-login: no token in
+//    its environment) with Remote Control; otherwise it runs on the token and `jv coordinator status` names the one
+//    command that turns Remote Control on.
 // 6. Records the tmux target on the row and in meta, and waits (up to 60 s) for the input prompt.
 //
 // Stop types /exit, waits up to 30 s for the session to end, then kills the tmux session (only ours). Restart is
@@ -34,9 +43,10 @@ import { notFound, refused } from './errors.js';
 import { buildHandoff, formatHandoff } from './handoff.js';
 import { isAlive } from './launcher.js';
 import { paths } from './paths.js';
-import { fillPlaceholders, splitFrontmatter } from './prompt.js';
+import { AGENTS_MAX_BYTES, fillPlaceholders, projectInstructions, splitFrontmatter } from './prompt.js';
 import { findProvider, loadProviders, type Provider, type ProvidersConfig } from './providers.js';
 import { redact } from './redact.js';
+import { hasOwnClaudeLogin, readSeedsApplied, type SeedRecord } from './seeds.js';
 import type { Store } from './store.js';
 import type { ProjectRow, SessionRow } from './types.js';
 
@@ -47,6 +57,12 @@ export const COORDINATOR_SKILL = 'jevellan-coordinator';
 export const COORDINATOR_META_PREFIX = 'coordinator:';
 export const HANDOFF_PREFIX = 'Handoff from your previous session:';
 export const READY_TIMEOUT_MS = 60_000;
+/**
+ * Only the provider home's user settings load (as for claude-sdk and claude-tmux workers, D-058): no CLAUDE.md or
+ * .claude/rules of the checkout's ancestor folders, which reach up into the owner's own home.
+ */
+export const COORDINATOR_SETTING_SOURCES: readonly string[] = Object.freeze(['--setting-sources', 'user']);
+export const PROJECT_INSTRUCTIONS_HEADING = "# This project's AGENTS.md";
 export const STOP_WAIT_MS = 30_000;
 /** What Claude Code 2.1.316 answers /remote-control with when the login is a setup token (dev-madrid, findings). */
 export const REMOTE_CONTROL_TOKEN_REFUSAL =
@@ -73,6 +89,11 @@ export const realTmux: TmuxRunner = (args, input) => {
 /** The tmux session name of a project's coordinator: jv-coord-<project> (tmux turns "." and ":" into "_"). */
 export function coordinatorTmuxName(project: string): string {
   return `jv-coord-${project.replace(/[.:]/g, '_')}`;
+}
+
+/** The name the coordinator's Remote Control session gets in the Claude app: jv-<project>. */
+export function remoteControlName(project: string): string {
+  return `jv-${project}`;
 }
 
 /** An exact-match target for a session's active pane ("=" stops tmux from matching a name by prefix). */
@@ -150,6 +171,10 @@ export async function waitForScreen(
 export interface RemoteControlInfo {
   /** Whether --remote-control was passed. */
   requested: boolean;
+  /** Whether the coordinator signs in with its home's own login instead of the tokenFile (jv exec --home-login). */
+  homeLogin?: boolean;
+  /** The --remote-control name (jv-<project>) when requested. */
+  name?: string;
   /** unavailable: this login cannot use it; requested: flag passed, not confirmed on screen; seen: on screen. */
   state: 'unavailable' | 'requested' | 'seen';
   detail: string;
@@ -248,7 +273,13 @@ export function coordinatorPromptText(input: PromptInput): string {
     default_branch: input.project.default_branch,
     jv: input.jv ?? paths.shim,
   });
-  return `${body}\n\n# ${HANDOFF_PREFIX.replace(/:$/, '')}\n\n${input.handoff.trim()}\n`;
+  // The coordinator loads no project instructions of its own (--setting-sources user), so the project block carries
+  // the checkout's AGENTS.md, cut at 32 KiB as the workers' copy is.
+  const agents = projectInstructions(input.project.path);
+  const instructions = agents
+    ? `${PROJECT_INSTRUCTIONS_HEADING}\n\nThe project's own instructions, from ${join(input.project.path, 'AGENTS.md')} (at most ${AGENTS_MAX_BYTES / 1024} KiB). They bind the tasks' workers; for you they describe the project.\n\n${redact(agents)}\n\n`
+    : '';
+  return `${body}\n\n${instructions}# ${HANDOFF_PREFIX.replace(/:$/, '')}\n\n${input.handoff.trim()}\n`;
 }
 
 function writeFileAtomic(file: string, content: string, mode = 0o600): void {
@@ -324,21 +355,23 @@ export function preacceptDialogs(home: string, folders: readonly string[]): Prea
 
 // ---- remote control -------------------------------------------------------------------------------------------
 
-/** Whether this provider's login can use Remote Control, and what the owner does when it cannot. */
-export function remoteControlPlan(provider: Provider): RemoteControlInfo {
-  if (provider.kind === 'claude-subscription' && provider.tokenFile !== undefined) {
-    return {
-      requested: false,
-      state: 'unavailable',
-      detail:
-        `${provider.name} signs in with a long-lived token (tokenFile in providers.json), and Claude Code refuses Remote ` +
-        `Control for such a token: "${REMOTE_CONTROL_TOKEN_REFUSAL}" The coordinator runs without it.`,
-      ownerCommand:
-        `Remote Control needs ${provider.name} to run on a full claude.ai login (jv providers login ${provider.name}) ` +
-        `instead of its tokenFile, which is the owner's choice (D-003, D-023); after that, jv coordinator restart, and ` +
-        `type /remote-control inside the coordinator if it is not on.`,
-    };
-  }
+/** What the owner runs to give the coordinator's provider a login of its own (Remote Control needs one). */
+export function ownLoginCommand(provider: string = COORDINATOR_PROVIDER): string {
+  return `jv providers login ${provider}`;
+}
+
+/**
+ * How the coordinator signs in, and whether Remote Control can be asked for (D-054):
+ * - a claude-subscription without a tokenFile signs in with its home's login (seeded or the owner's): Remote Control;
+ * - one with a tokenFile whose home also holds a login jv did not seed (`ownLogin`, made by jv providers login):
+ *   that login (jv exec --home-login, so no token is in its environment) and Remote Control;
+ * - one with a tokenFile only: the token, and no Remote Control, which Claude Code refuses for a long-lived token;
+ *   the owner command is the one login that turns it on;
+ * - any other kind: no Remote Control.
+ */
+export function remoteControlPlan(provider: Provider, options: { ownLogin?: boolean; project?: string } = {}): RemoteControlInfo {
+  const name = options.project !== undefined ? remoteControlName(options.project) : undefined;
+  const restart = `jv coordinator restart${options.project !== undefined ? ` --project ${options.project}` : ''}`;
   if (provider.kind !== 'claude-subscription') {
     return {
       requested: false,
@@ -347,12 +380,37 @@ export function remoteControlPlan(provider: Provider): RemoteControlInfo {
       ownerCommand: 'Run the coordinator on a claude-subscription provider with a full claude.ai login.',
     };
   }
+  if (provider.tokenFile !== undefined && options.ownLogin !== true) {
+    return {
+      requested: false,
+      state: 'unavailable',
+      detail:
+        `${provider.name} signs in with a long-lived token (tokenFile in providers.json), and Claude Code refuses Remote ` +
+        `Control for such a token: "${REMOTE_CONTROL_TOKEN_REFUSAL}" The coordinator runs without it. After the login ` +
+        `below, ${restart} runs the coordinator on that login with Remote Control; ${provider.name}'s workers keep the token.`,
+      ownerCommand: ownLoginCommand(provider.name),
+    };
+  }
+  const homeLogin = provider.tokenFile !== undefined;
   return {
     requested: true,
+    ...(homeLogin ? { homeLogin: true } : {}),
+    ...(name !== undefined ? { name } : {}),
     state: 'requested',
-    detail: 'Started with --remote-control; the coordinator screen has not shown it yet.',
+    detail: homeLogin
+      ? `Started with --remote-control on ${provider.name}'s own claude.ai login in its home (not its tokenFile); the coordinator screen has not shown it yet.`
+      : 'Started with --remote-control; the coordinator screen has not shown it yet.',
     ownerCommand: 'If it is not on, type /remote-control inside the coordinator (jv coordinator status prints the attach command).',
   };
+}
+
+/** Whether the coordinator's provider home holds a login jv did not seed (seeds-applied.json, D-009). */
+function ownLogin(provider: Provider, deps: { seedsApplied?: Record<string, SeedRecord> }): boolean {
+  try {
+    return hasOwnClaudeLogin(provider, deps.seedsApplied ?? readSeedsApplied());
+  } catch {
+    return false;
+  }
 }
 
 // ---- start, stop, restart, status ----------------------------------------------------------------------------
@@ -374,6 +432,8 @@ export interface CoordinatorDeps {
   readCmdline?: (pid: number) => string[] | undefined;
   /** Skip the pre-accept writes (tests that check them separately). */
   skipPreaccept?: boolean;
+  /** seeds-applied.json as read (default: the file in $JV_HOME). */
+  seedsApplied?: Record<string, SeedRecord>;
 }
 
 export interface CoordinatorStatus {
@@ -437,6 +497,16 @@ function realpathOr(p: string): string {
   }
 }
 
+/** The Remote Control plan the coordinator's provider would get if it started now (undefined: unknown). */
+function currentPlan(project: string, deps: CoordinatorDeps): RemoteControlInfo | undefined {
+  try {
+    const provider = findProvider(deps.providers ?? loadProviders(), COORDINATOR_PROVIDER);
+    return provider ? remoteControlPlan(provider, { ownLogin: ownLogin(provider, deps), project }) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** The status of a project's coordinator. Marks a registered row lost when its tmux session is gone. */
 export function coordinatorStatus(store: Store, projectName: string, deps: CoordinatorDeps = {}): CoordinatorStatus {
   const tmux = deps.tmux ?? realTmux;
@@ -452,6 +522,20 @@ export function coordinatorStatus(store: Store, projectName: string, deps: Coord
   let remoteControl = record?.remoteControl;
   if (ours && remoteControl?.state === 'requested' && /remote control/i.test(capturePane(tmux, name) ?? '')) {
     remoteControl = { ...remoteControl, state: 'seen', detail: 'Remote Control is shown on the coordinator screen.' };
+  }
+  if (remoteControl?.state === 'unavailable') {
+    // What it takes now (the record holds what it took at start): the one login command, or, when the owner signed
+    // in after this coordinator started on its token, the restart that picks the login up.
+    const now = currentPlan(project.name, deps);
+    if (now?.requested) {
+      remoteControl = {
+        ...remoteControl,
+        detail: `${COORDINATOR_PROVIDER} now has a login of its own; the coordinator ${ours ? 'running now still uses' : 'last ran on'} the token.`,
+        ownerCommand: `jv coordinator restart --project ${project.name}`,
+      };
+    } else if (now) {
+      remoteControl = { ...remoteControl, detail: now.detail, ownerCommand: now.ownerCommand };
+    }
   }
   return {
     project: project.name,
@@ -528,9 +612,9 @@ export async function startCoordinator(store: Store, projectName: string, deps: 
     state_reason: `starting the coordinator in tmux ${name}`,
   }).row;
 
-  const remoteControl = remoteControlPlan(provider);
+  const remoteControl = remoteControlPlan(provider, { ownLogin: ownLogin(provider, deps), project: project.name });
   const claudeArgs = [
-    ...(remoteControl.requested ? ['--remote-control', name] : []),
+    ...(remoteControl.requested ? ['--remote-control', remoteControlName(project.name)] : []),
     '--model',
     COORDINATOR_MODEL,
     '--effort',
@@ -541,7 +625,9 @@ export async function startCoordinator(store: Store, projectName: string, deps: 
     'bypassPermissions',
     '--session-id',
     uuid,
+    ...COORDINATOR_SETTING_SOURCES,
   ];
+  const execArgs = ['exec', '--session', session.id, '--project', project.name, ...(remoteControl.homeLogin ? ['--home-login'] : []), '--'];
   const paneEnv = [
     ...(env.PATH ? ['-e', `PATH=${env.PATH}`] : []),
     ...(env.LANG ? ['-e', `LANG=${env.LANG}`] : []),
@@ -551,7 +637,7 @@ export async function startCoordinator(store: Store, projectName: string, deps: 
   const created = tmux([
     'new-session', '-d', '-s', name, '-x', '200', '-y', '50', '-c', project.path, ...paneEnv,
     '-P', '-F', '#{pane_pid}',
-    jv, 'exec', '--session', session.id, '--project', project.name, '--', claude, ...claudeArgs,
+    jv, ...execArgs, claude, ...claudeArgs,
   ]);
   if (created.code !== 0) {
     store.setSessionState(session.id, 'failed', `tmux new-session failed: ${created.stderr.trim() || `exit ${created.code}`}`);
@@ -581,7 +667,7 @@ export async function startCoordinator(store: Store, projectName: string, deps: 
   if (waited.state === 'gone') {
     store.setSessionState(session.id, 'failed', `the coordinator exited at start (tmux ${name} is gone)`);
     throw refused(
-      `the coordinator exited right after it started. Run it by hand to see why: ${jv} exec --session ${session.id} -- ${claude} ${claudeArgs.join(' ')}`,
+      `the coordinator exited right after it started. Run it by hand to see why: ${jv} ${execArgs.join(' ')} ${claude} ${claudeArgs.join(' ')}`,
     );
   }
   if (waited.state === 'ready' && remoteControl.requested && /remote control/i.test(waited.screen ?? '')) {

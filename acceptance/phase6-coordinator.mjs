@@ -8,7 +8,8 @@
 //           pane's command line.
 // status    "status" typed into the window: the coordinator runs jv status --json and says nothing is running or
 //           waiting for the project.
-// rules     "what are your rules?": the reply names the jv commands.
+// rules     "what are your rules?": the reply names the jv commands, and no instruction file of the owner's own
+//           ~/.claude reached the coordinator (--setting-sources user).
 // remote    jv coordinator status shows how Remote Control was verified, or the command the owner runs.
 // wake      wake.notifyCoordinator with a harmless [jv] line: the line reaches the window and is answered.
 // handoff   jv handoff --project prints the handoff.
@@ -20,6 +21,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { check, checkoutState, JV_HOME, jvJson, log, query, queryOne, runtimeModule, SANDBOX, SANDBOX_NAME, sleep, summary } from './lib.mjs';
 
@@ -130,13 +132,23 @@ async function main() {
     const pid = C.panePid(tmux, NAME);
     const cmd = pid ? spawnSync('ps', ['-o', 'args=', '-p', String(pid)], { encoding: 'utf8' }).stdout.trim() : '';
     log(`pane process: ${cmd}`);
-    const flags = ['--model claude-opus-5-5', '--effort high', '--append-system-prompt-file', '--permission-mode bypassPermissions', '--session-id', `exec --session ${s.json.sessionId}`];
+    const flags = ['--model claude-opus-5-5', '--effort high', '--append-system-prompt-file', '--permission-mode bypassPermissions', '--session-id', '--setting-sources user', `exec --session ${s.json.sessionId}`];
     check('the pane runs claude through jv exec with the coordinator flags', flags.every((f) => cmd.includes(f)), flags.filter((f) => !cmd.includes(f)).join(', ') || 'all present');
+    const startRc = s.json.remoteControl;
+    if (startRc?.requested) {
+      const rcFlags = [`--remote-control ${C.remoteControlName(PROJECT)}`, ...(startRc.homeLogin ? ['--home-login'] : [])];
+      check('Remote Control: the pane has --remote-control jv-<project> (and --home-login on the own login)', rcFlags.every((f) => cmd.includes(f)), rcFlags.filter((f) => !cmd.includes(f)).join(', ') || 'all present');
+    } else {
+      check('Remote Control: not asked for on a token login, and the owner command is jv providers login claude-main', !cmd.includes('--remote-control') && !cmd.includes('--home-login') && startRc?.ownerCommand === 'jv providers login claude-main', `${startRc?.state}; owner: ${startRc?.ownerCommand}`);
+    }
     check('no secret on the pane command line', !/TOKEN=|API_KEY=|sk-ant-/.test(cmd));
     const row = queryOne('SELECT * FROM sessions WHERE id = ?', s.json.sessionId);
     check('the coordinator sessions row', row?.kind === 'coordinator' && row.runtime === 'claude-tmux' && row.native_session_id === s.json.nativeSessionId && row.tmux_target === `=${NAME}:`, `${row?.kind} ${row?.runtime} ${row?.state} ${row?.native_session_id} ${row?.tmux_target}`);
     const prompt = readFileSync(s.json.promptFile, 'utf8');
     check('the prompt file names the project and has no unfilled placeholder', prompt.includes(PROJECT) && prompt.includes(SANDBOX) && !/\{\{\w+\}\}/.test(prompt), `${s.json.promptFile}, ${prompt.length} characters`);
+    if (existsSync(join(SANDBOX, 'AGENTS.md'))) {
+      check("the prompt carries the project's AGENTS.md (the coordinator loads no project instructions itself)", prompt.includes("# This project's AGENTS.md"), `${prompt.length} characters`);
+    }
 
     // ---- status
     const st = await ask('status', 'status');
@@ -152,6 +164,12 @@ async function main() {
       const named = JV_COMMANDS.filter((c) => ru.reply.includes(c.replace(/^jv /, '')) || ru.reply.includes(c));
       check('rules: the reply names the jv commands', !ru.timedOut && named.length >= 6, `${named.length}/${JV_COMMANDS.length}: ${named.join(', ')}`);
       check('rules: the prompt is applied (the reply names the project or its role)', /coordinat|delegat|jevellan-live-sandbox/i.test(ru.reply), oneLine(ru.reply, 200));
+      // --setting-sources user: no CLAUDE.md or .claude/rules of the owner's home reach the coordinator.
+      const owner = homedir();
+      const file = transcriptOf(jvJson(['coordinator', 'status', '--project', PROJECT]).json);
+      const text = existsSync(file) ? readFileSync(file, 'utf8') : '';
+      const leaked = [join(owner, '.claude', 'CLAUDE.md'), join(owner, '.claude', 'rules')].filter((p) => text.includes(p));
+      check("rules: the owner's own ~/.claude instructions are not loaded", text !== '' && leaked.length === 0, leaked.join(', ') || 'none in the transcript');
     }
     guard('rules');
 

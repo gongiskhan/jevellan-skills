@@ -260,7 +260,20 @@ test('login: a tmux session jv-login-<name> through jv exec --provider; token an
   const second = P.loginProvider('claude-second', { tmux, providers, tty: false, insideTmux: false, claude: '/opt/claude' });
   assert.deepEqual(calls.filter((c) => c[0] === 'new-session').at(-1)!.slice(-5), ['exec', '--provider', 'claude-second', '--', '/opt/claude']);
   assert.equal(second.tmuxTarget, 'jv-login-claude-second');
-  assert.throws(() => P.loginProvider('claude-main', { tmux, providers, tty: false }), /token file/);
+  // claude-main (the coordinator's provider) has a tokenFile and still takes a login of its own, for Remote Control:
+  // claude auth login with the token left out of the environment (--home-login).
+  const main = P.loginProvider('claude-main', { tmux, providers, tty: false, insideTmux: false, claude: '/opt/claude' });
+  assert.equal(main.tmuxTarget, 'jv-login-claude-main');
+  assert.deepEqual(calls.filter((c) => c[0] === 'new-session').at(-1)!.slice(-8), ['exec', '--provider', 'claude-main', '--home-login', '--', '/opt/claude', 'auth', 'login']);
+  assert.match(main.note ?? '', /coordinator's own .*workers keep signing in with \S*claude-main\.token/);
+  assert.equal(second.note, undefined);
+  // Any other provider with a tokenFile is refused with the file to write.
+  const withToken = () => {
+    const c = loadProviders(file);
+    return { ...c, providers: c.providers.map((p) => (p.name === 'claude-second' ? { ...p, tokenFile: '~/.jv/secrets/claude-second.token' } : p)) };
+  };
+  live.delete('jv-login-claude-second');
+  assert.throws(() => P.loginProvider('claude-second', { tmux, providers: withToken, tty: false }), /token file/);
   assert.throws(() => P.loginProvider('deepseek', { tmux, providers, tty: false }), /key file/);
   assert.throws(() => P.loginProvider('nobody', { tmux, providers, tty: false }), /no provider nobody/);
 });

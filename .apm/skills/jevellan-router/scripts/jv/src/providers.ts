@@ -298,12 +298,16 @@ export interface ProviderEnv {
  * The provider's part of a child environment (D-003, D-004): HOME (and CODEX_HOME), plus
  * CLAUDE_CODE_OAUTH_TOKEN from tokenFile for a Claude subscription, or ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN and
  * the ANTHROPIC_DEFAULT_*_MODEL ids for a Claude endpoint. CLAUDE_CONFIG_DIR is never set.
+ *
+ * `homeLogin` leaves a Claude subscription's tokenFile out, so Claude Code signs in with the home's own
+ * .credentials.json instead: the coordinator on a login the owner made with jv providers login (Remote Control
+ * refuses a long-lived token), and that login itself. Workers never pass it, so for them the token wins (D-003).
  */
-export function providerEnv(p: Provider): ProviderEnv {
+export function providerEnv(p: Provider, options: { homeLogin?: boolean } = {}): ProviderEnv {
   const env: Record<string, string> = {};
   if (p.home !== undefined) env.HOME = p.home;
   if (p.kind === 'codex-subscription' && p.home !== undefined) env.CODEX_HOME = `${p.home}/.codex`;
-  if (p.kind === 'claude-subscription' && p.tokenFile !== undefined) {
+  if (p.kind === 'claude-subscription' && p.tokenFile !== undefined && options.homeLogin !== true) {
     const token = readSecretFile(p.tokenFile);
     if (token === undefined) return { env, missing: p.tokenFile };
     env.CLAUDE_CODE_OAUTH_TOKEN = token;

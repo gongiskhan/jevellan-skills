@@ -16,7 +16,7 @@ const c = await import('../src/coordinator.js');
 const { openStore } = await import('../src/store.js');
 const { JvError } = await import('../src/errors.js');
 const { loadProviders } = await import('../src/providers.js');
-const { paths } = await import('../src/paths.js');
+const { paths, RUNTIME_ROOT } = await import('../src/paths.js');
 
 after(() => rmSync(home, { recursive: true, force: true }));
 
@@ -98,15 +98,54 @@ test('preacceptDialogs writes the trust and bypass keys once and keeps every oth
 test('remoteControlPlan: a tokenFile login cannot use Remote Control; a full login gets the flag', () => {
   const providers = loadProviders();
   const main = providers.providers.find((p) => p.name === 'claude-main')!;
-  const withToken = c.remoteControlPlan(main);
+  const withToken = c.remoteControlPlan(main, { project: 'sandbox' });
   assert.equal(withToken.requested, false);
   assert.equal(withToken.state, 'unavailable');
+  assert.equal(withToken.homeLogin, undefined);
   assert.ok(withToken.detail.includes(c.REMOTE_CONTROL_TOKEN_REFUSAL));
-  assert.match(withToken.ownerCommand, /\/remote-control/);
+  assert.equal(withToken.ownerCommand, 'jv providers login claude-main', 'the one command the owner runs');
+  assert.match(withToken.detail, /jv coordinator restart --project sandbox/);
+  // The tokenFile and a login of the home's own (jv providers login): that login, with Remote Control.
+  const own = c.remoteControlPlan(main, { ownLogin: true, project: 'sandbox' });
+  assert.deepEqual([own.requested, own.state, own.homeLogin, own.name], [true, 'requested', true, 'jv-sandbox']);
   const { tokenFile: _t, ...full } = main;
   const withLogin = c.remoteControlPlan(full);
   assert.equal(withLogin.requested, true);
   assert.equal(withLogin.state, 'requested');
+  assert.equal(withLogin.homeLogin, undefined, 'no tokenFile: nothing to leave out');
+});
+
+test('the prompt carries the project AGENTS.md, cut at 32 KiB', () => {
+  const repo = join(home, 'repos', 'with-agents');
+  mkdirSync(repo, { recursive: true });
+  writeFileSync(join(repo, 'AGENTS.md'), '# Working here\nUse pnpm, never npm.\n');
+  const text = c.coordinatorPromptText({ project: { name: 'with-agents', path: repo, default_branch: 'main' }, handoff: 'none' });
+  const at = text.indexOf(c.PROJECT_INSTRUCTIONS_HEADING);
+  assert.ok(at > 0, 'an AGENTS.md section');
+  assert.ok(text.indexOf('Use pnpm, never npm.') > at && text.indexOf('# Handoff from your previous session') > text.indexOf('Use pnpm'));
+  writeFileSync(join(repo, 'AGENTS.md'), `${'x'.repeat(40 * 1024)}\nTAIL-MARK\n`);
+  const cut = c.coordinatorPromptText({ project: { name: 'with-agents', path: repo, default_branch: 'main' }, handoff: 'none' });
+  assert.ok(cut.includes('[AGENTS.md is longer than 32 KiB; the rest was cut. Read the file for the full text.]'));
+  assert.ok(!cut.includes('TAIL-MARK'));
+  // No AGENTS.md: no section.
+  const none = c.coordinatorPromptText({ project: { name: 'sandbox', path: '/repos/none', default_branch: 'main' }, handoff: 'none' });
+  assert.ok(!none.includes(c.PROJECT_INSTRUCTIONS_HEADING));
+});
+
+test('the coordinator skill and agent files keep identical bodies, and every --project example names the project', () => {
+  const pkg = join(RUNTIME_ROOT, '..', '..', '..', '..');
+  const body = (file: string) => {
+    const text = readFileSync(file, 'utf8');
+    return text.slice(text.indexOf('\n---\n', 4) + 5);
+  };
+  const skill = body(join(pkg, 'skills', 'jevellan-coordinator', 'SKILL.md'));
+  assert.equal(body(join(pkg, 'agents', 'jevellan-coordinator.agent.md')), skill);
+  for (const cmd of ['status --json', 'handoff', 'notes write', 'task create']) {
+    const examples = skill.split('\n').filter((l) => l.startsWith(`{{jv}} ${cmd}`));
+    assert.ok(examples.length > 0, cmd);
+    for (const l of examples) assert.match(l, /--project \{\{project\}\}/, l);
+  }
+  assert.match(skill, /When the owner asks what your rules are or what you can do, answer with the jv commands you use, one line each with what it is for, then a short note on how you decide\./);
 });
 
 test('start: row, meta, prompt, pre-accepted dialogs and the tmux command; a second start is a no-op', async () => {
@@ -142,6 +181,8 @@ test('start: row, meta, prompt, pre-accepted dialogs and the tmux command; a sec
   const claudeArgs = fake.command.slice(7);
   assert.equal(claudeArgs[0], '/usr/bin/claude');
   assert.ok(!claudeArgs.includes('--remote-control'), 'no --remote-control for a tokenFile login');
+  assert.ok(!fake.command.includes('--home-login'), 'the token login: no --home-login');
+  assert.deepEqual(claudeArgs.slice(-2), ['--setting-sources', 'user'], "no CLAUDE.md or rules of the checkout's ancestor folders");
   const flag = (f: string) => claudeArgs[claudeArgs.indexOf(f) + 1];
   assert.equal(flag('--model'), 'claude-opus-5-5');
   assert.equal(flag('--effort'), 'high');
@@ -176,7 +217,7 @@ test('start: row, meta, prompt, pre-accepted dialogs and the tmux command; a sec
   assert.equal(twice.stopped, false);
 });
 
-test('a full login gets --remote-control jv-coord-<project>', async () => {
+test('a full login gets --remote-control jv-<project>', async () => {
   project('rc');
   const tmux = new FakeTmux();
   const providers = loadProviders();
@@ -187,9 +228,63 @@ test('a full login gets --remote-control jv-coord-<project>', async () => {
   });
   const r = await c.startCoordinator(store, 'rc', deps(tmux, { providers }));
   const args = tmux.sessions.get('jv-coord-rc')!.command;
-  assert.equal(args[args.indexOf('--remote-control') + 1], 'jv-coord-rc');
+  assert.equal(args[args.indexOf('--remote-control') + 1], 'jv-rc');
+  assert.ok(!args.includes('--home-login'));
   assert.equal(r.remoteControl!.state, 'requested');
   await c.stopCoordinator(store, 'rc', deps(tmux));
+});
+
+test('a tokenFile plus a login jv did not seed: the coordinator runs on that login with Remote Control', async () => {
+  const credentials = join(claudeMainHome, '.claude', '.credentials.json');
+  mkdirSync(join(claudeMainHome, '.claude'), { recursive: true });
+  const login = JSON.stringify({ claudeAiOauth: { accessToken: 'fake-access-for-coordinator-test-0001' } });
+  writeFileSync(credentials, login, { mode: 0o600 });
+  try {
+    // A copy the seed made (and never archived) is not a login of the home's own: the token, no Remote Control.
+    project('seededlogin');
+    const seededTmux = new FakeTmux();
+    const seededLogin = { 'claude-main': { source: '/elsewhere', at: '2026-11-01T00:00:00.000Z', files: [{ from: '/elsewhere/.credentials.json', to: credentials, bytes: Buffer.byteLength(login) }] } };
+    const seeded = await c.startCoordinator(store, 'seededlogin', deps(seededTmux, { seedsApplied: seededLogin }));
+    assert.equal(seeded.remoteControl!.state, 'unavailable');
+    assert.ok(!seededTmux.sessions.get('jv-coord-seededlogin')!.command.includes('--home-login'));
+    await c.stopCoordinator(store, 'seededlogin', deps(seededTmux));
+
+    // The owner's own login (nothing seeded there, or the seeded copy archived since): --home-login and the flag.
+    project('ownlogin');
+    const tmux = new FakeTmux();
+    const archived = { 'claude-main': { ...seededLogin['claude-main'], archived: [{ from: credentials, to: '/archive/x', at: '2026-11-01T00:00:01.000Z', why: 'test' }] } };
+    for (const [i, seedsApplied] of [{}, archived].entries()) {
+      const r = await c.startCoordinator(store, 'ownlogin', deps(tmux, { seedsApplied }));
+      const command = tmux.sessions.get('jv-coord-ownlogin')!.command;
+      const dashes = command.indexOf('--');
+      assert.deepEqual(command.slice(0, dashes + 1), ['/opt/jv/bin/jv', 'exec', '--session', r.sessionId!, '--project', 'ownlogin', '--home-login', '--'], `case ${i}`);
+      assert.equal(command[command.indexOf('--remote-control') + 1], 'jv-ownlogin');
+      assert.deepEqual([r.remoteControl!.requested, r.remoteControl!.homeLogin, r.remoteControl!.state], [true, true, 'requested']);
+      for (const call of tmux.calls) assert.ok(!call.join(' ').includes(FAKE_TOKEN));
+      await c.stopCoordinator(store, 'ownlogin', deps(tmux));
+    }
+  } finally {
+    rmSync(credentials, { force: true });
+  }
+});
+
+test('status: a token coordinator prints the one login command; after that login, the restart', async () => {
+  project('rcstatus');
+  const tmux = new FakeTmux();
+  await c.startCoordinator(store, 'rcstatus', deps(tmux, { seedsApplied: {} }));
+  const text = c.formatStatus(c.coordinatorStatus(store, 'rcstatus', deps(tmux, { seedsApplied: {} })));
+  assert.match(text, /^Remote Control: unavailable\./m);
+  assert.match(text, /^To turn it on: jv providers login claude-main$/m);
+  const credentials = join(claudeMainHome, '.claude', '.credentials.json');
+  writeFileSync(credentials, '{}', { mode: 0o600 });
+  try {
+    const after = c.coordinatorStatus(store, 'rcstatus', deps(tmux, { seedsApplied: {} }));
+    assert.equal(after.remoteControl!.ownerCommand, 'jv coordinator restart --project rcstatus');
+    assert.match(after.remoteControl!.detail, /now has a login of its own/);
+  } finally {
+    rmSync(credentials, { force: true });
+  }
+  await c.stopCoordinator(store, 'rcstatus', deps(tmux));
 });
 
 test('a foreign tmux session of our name is refused and left alone', async () => {

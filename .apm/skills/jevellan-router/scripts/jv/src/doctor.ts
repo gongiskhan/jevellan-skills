@@ -7,8 +7,8 @@
 
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, statfsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readdirSync, readFileSync, realpathSync, statfsSync } from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
 import { listClaudeModels, type OfferedModel } from './claude-control.js';
 import { isAuthError, probeCodex, type CodexProbe } from './codex-control.js';
 import type { CommandIo, ParsedArgs } from './command.js';
@@ -33,6 +33,7 @@ import {
 import { redact } from './redact.js';
 import { REPORT_GUARD_MARK } from './seeds.js';
 import { openStore, SCHEMA_VERSION } from './store.js';
+import type { ProjectRow } from './types.js';
 
 export type CheckStatus = 'OK' | 'WARN' | 'FAIL';
 
@@ -529,9 +530,43 @@ const checkDisk: Check = async (ctx) => {
   }
 };
 
+function realOr(p: string): string {
+  try {
+    return realpathSync(p);
+  } catch {
+    return resolve(p);
+  }
+}
+
+/** The registered project whose checkout holds `dir` (symlinks resolved), or undefined. */
+export function registeredProjectAt(dir: string, projects: ReadonlyArray<Pick<ProjectRow, 'name' | 'path'>>): Pick<ProjectRow, 'name' | 'path'> | undefined {
+  const at = realOr(dir);
+  return projects
+    .map((p) => ({ p, root: realOr(p.path) }))
+    .filter(({ root }) => at === root || at.startsWith(root.endsWith(sep) ? root : `${root}${sep}`))
+    .sort((a, b) => b.root.length - a.root.length)[0]?.p;
+}
+
+/**
+ * The Stop hook of the project the doctor runs in. Only a registered project (jv project add) is checked: anywhere
+ * else the line is OK and skipped, because the fix (apm install) would write a .claude/ folder into whatever
+ * repository the owner happens to be in, this package's own checkout included.
+ */
 const checkHook: Check = async (ctx) => {
-  const top = gitTopLevel(ctx.deps.cwd);
-  if (!top) return [ok('hook', `${ctx.deps.cwd} is not inside a git repository; run jv doctor in a project to check its hook`)];
+  let projects: ProjectRow[];
+  try {
+    const store = openStore();
+    try {
+      projects = store.listProjects();
+    } finally {
+      store.close();
+    }
+  } catch {
+    projects = [];
+  }
+  const project = registeredProjectAt(ctx.deps.cwd, projects);
+  if (!project) return [ok('hook', 'not inside a registered project; skipped')];
+  const top = gitTopLevel(ctx.deps.cwd) ?? project.path;
   const file = join(top, '.claude', 'settings.json');
   return [
     stopHookRegistered(file)

@@ -119,10 +119,26 @@ export function tmuxEnvArgs(env: NodeJS.ProcessEnv = process.env): string[] {
   return [...(env.PATH ? ['-e', `PATH=${env.PATH}`] : []), '-e', `JV_HOME=${paths.home}`];
 }
 
-/** The command line that runs `command` through `jv exec` (D-007): the bootstrap Node and the installed jv entry. */
-export function jvExecArgv(selector: { session: string } | { provider: string }, command: readonly string[]): string[] {
+/**
+ * The command line that runs `command` through `jv exec` (D-007): the bootstrap Node and the installed jv entry.
+ * `homeLogin` passes --home-login (the home's own login instead of the tokenFile; never for workers).
+ */
+export function jvExecArgv(
+  selector: { session: string } | { provider: string },
+  command: readonly string[],
+  options: { homeLogin?: boolean } = {},
+): string[] {
   const sel = 'session' in selector ? ['--session', selector.session] : ['--provider', selector.provider];
-  return [bootstrapNode(), '--disable-warning=ExperimentalWarning', join(paths.runtimeDir, 'bin', 'jv.mjs'), 'exec', ...sel, '--', ...command];
+  return [
+    bootstrapNode(),
+    '--disable-warning=ExperimentalWarning',
+    join(paths.runtimeDir, 'bin', 'jv.mjs'),
+    'exec',
+    ...sel,
+    ...(options.homeLogin ? ['--home-login'] : []),
+    '--',
+    ...command,
+  ];
 }
 
 /** The full path of a command on PATH (the first executable file), or the name itself when not found. */

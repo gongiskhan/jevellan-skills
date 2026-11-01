@@ -1,8 +1,11 @@
 // jv exec (internal, D-007): runs one command under a provider's minimal environment, with inherited stdio.
 //
-//   jv exec (--session R | --provider P) [--project N] [--cwd DIR] -- <command> [args...]
+//   jv exec (--session R | --provider P) [--project N] [--cwd DIR] [--home-login] -- <command> [args...]
 //
 // Both --session and --provider may be given when they agree (the session row's provider is the one used).
+// --home-login (Claude subscriptions only) leaves the provider's tokenFile out of the environment, so Claude Code
+// signs in with the home's own .credentials.json: the coordinator on a login the owner made with jv providers login
+// (Remote Control refuses a long-lived token, D-054), and that login command itself. Workers never get it (D-003).
 //
 // Every process jv launches in tmux (the coordinator, claude-tmux sessions, jv attach, jv providers login) goes
 // through this command, so the provider's token and keys travel only through this process's child environment:
@@ -34,6 +37,8 @@ export interface ExecSpec {
   /** The project name for JV_PROJECT (default: the session's project, else base JV_PROJECT). */
   projectName?: string;
   cwd?: string;
+  /** Sign in with the home's own login instead of the tokenFile (Claude subscriptions only). */
+  homeLogin?: boolean;
   /** The command and its arguments. */
   command: readonly string[];
 }
@@ -85,7 +90,15 @@ export function planExec(store: Store, spec: ExecSpec, options: ExecOptions = {}
   const providers = options.providers ?? loadProviders();
   const provider = findProvider(providers, providerName!);
   if (!provider) throw refused(`no provider ${providerName} in ${providers.file}`);
-  const env = minimalEnvironment({ provider, base, ...(spec.sessionId ? { sessionId: spec.sessionId } : {}) });
+  if (spec.homeLogin && provider.kind !== 'claude-subscription') {
+    throw refused(`--home-login is for Claude subscriptions; ${provider.name} is a ${provider.kind} provider`);
+  }
+  const env = minimalEnvironment({
+    provider,
+    base,
+    ...(spec.sessionId ? { sessionId: spec.sessionId } : {}),
+    ...(spec.homeLogin ? { homeLogin: true } : {}),
+  });
   if (projectName) env.JV_PROJECT = projectName;
   if (base.COLORTERM) env.COLORTERM = base.COLORTERM;
   return {
@@ -106,26 +119,30 @@ function signalNumber(signal: NodeJS.Signals): number {
 /**
  * Spawns the plan with inherited stdio and resolves with the exit code to use. The store must be closed by the caller
  * before (the child may run for days).
+ *
+ * The signal handlers are installed before the child is spawned: the child can start, print and be signalled for
+ * (tmux, a test, the owner) before spawn() even returns here, and a SIGTERM in that window used to kill this process
+ * with the default action and leave the child running on its own. A forwarded signal that arrives before the child
+ * exists is delivered to it right after the spawn.
  */
 export function runExec(plan: ExecPlan, options: { stdio?: 'inherit' | 'ignore' } = {}): Promise<number> {
   return new Promise((resolvePromise) => {
-    let child: ReturnType<typeof spawn>;
-    try {
-      child = spawn(plan.file, plan.args, { cwd: plan.cwd, env: plan.env, stdio: options.stdio ?? 'inherit' });
-    } catch (error) {
-      process.stderr.write(`jv exec: cannot start ${plan.file}: ${error instanceof Error ? error.message : String(error)}\n`);
-      resolvePromise(127);
-      return;
-    }
+    let child: ReturnType<typeof spawn> | undefined;
+    const early: NodeJS.Signals[] = [];
+    const forward = (sig: NodeJS.Signals): void => {
+      if (!child) {
+        early.push(sig);
+        return;
+      }
+      try {
+        child.kill(sig);
+      } catch {
+        // already gone
+      }
+    };
     const handlers = new Map<NodeJS.Signals, () => void>();
     for (const sig of FORWARDED_SIGNALS) {
-      const h = (): void => {
-        try {
-          child.kill(sig);
-        } catch {
-          // already gone
-        }
-      };
+      const h = (): void => forward(sig);
       handlers.set(sig, h);
       process.on(sig, h);
     }
@@ -137,19 +154,26 @@ export function runExec(plan: ExecPlan, options: { stdio?: 'inherit' | 'ignore' 
       for (const sig of TERMINAL_SIGNALS) process.off(sig, ignore);
     };
     let settled = false;
+    const settle = (code: number): void => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolvePromise(code);
+    };
+    try {
+      child = spawn(plan.file, plan.args, { cwd: plan.cwd, env: plan.env, stdio: options.stdio ?? 'inherit' });
+    } catch (error) {
+      process.stderr.write(`jv exec: cannot start ${plan.file}: ${error instanceof Error ? error.message : String(error)}\n`);
+      settle(early.length ? 128 + signalNumber(early[0]!) : 127);
+      return;
+    }
     child.on('error', (error: NodeJS.ErrnoException) => {
       if (settled) return;
-      settled = true;
-      cleanup();
       const why = error.code === 'ENOENT' ? 'command not found' : error.message;
       process.stderr.write(`jv exec: cannot start ${plan.file}: ${why}\n`);
-      resolvePromise(127);
+      settle(127);
     });
-    child.on('exit', (code, signal) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolvePromise(code ?? (signal ? 128 + signalNumber(signal) : 1));
-    });
+    child.on('exit', (code, signal) => settle(code ?? (signal ? 128 + signalNumber(signal) : 1)));
+    for (const sig of early.splice(0)) forward(sig);
   });
 }

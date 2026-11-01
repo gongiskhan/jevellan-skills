@@ -65,6 +65,21 @@ test('--provider: no JV_SESSION; --project and --cwd; JV_PROJECT kept from the c
   assert.equal(inherited.cwd, process.cwd());
 });
 
+test("--home-login: the home's own login, no token (the coordinator on jv providers login); workers keep the token", () => {
+  const plan = planExec(store, { sessionId: session.id, homeLogin: true, command: ['claude'] }, { base });
+  assert.equal(plan.env.HOME, join(home, 'homes', 'claude-main'));
+  assert.equal(plan.env.CLAUDE_CODE_OAUTH_TOKEN, undefined);
+  assert.equal(plan.env.JV_SESSION, session.id);
+  assert.ok(!JSON.stringify(plan.env).includes(FAKE_TOKEN));
+  // Without the flag the token wins (D-003).
+  assert.equal(planExec(store, { sessionId: session.id, command: ['claude'] }, { base }).env.CLAUDE_CODE_OAUTH_TOKEN, FAKE_TOKEN);
+  // Only Claude subscriptions have a home login to use.
+  assert.throws(
+    () => planExec(store, { providerName: 'glm', homeLogin: true, command: ['sh'] }, { base }),
+    (e: unknown) => e instanceof JvError && e.exitCode === 2 && /Claude subscriptions/.test(e.message),
+  );
+});
+
 test('--session and --provider together must agree', () => {
   const plan = planExec(store, { sessionId: session.id, providerName: 'claude-main', command: ['sh'] }, { base });
   assert.equal(plan.provider.name, 'claude-main');
@@ -130,4 +145,14 @@ test('SIGTERM to jv exec reaches the child', async () => {
   child.kill('SIGTERM');
   const code = await new Promise<number | null>((resolve) => child.on('exit', (c) => resolve(c)));
   assert.equal(code, 42);
+});
+
+test('jv exec --home-login through the CLI leaves the token out of the child environment', () => {
+  const r = spawnSync(
+    process.execPath,
+    jvArgs(['exec', '--session', session.id, '--home-login', '--', 'sh', '-c', 'printf "%s|%s" "${CLAUDE_CODE_OAUTH_TOKEN:-none}" "$HOME"']),
+    { env: { ...process.env, JV_HOME: home }, encoding: 'utf8' },
+  );
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, `none|${join(home, 'homes', 'claude-main')}`);
 });

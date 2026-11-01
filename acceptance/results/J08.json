@@ -1,0 +1,101 @@
+{
+  "id": "J8",
+  "title": "Restart from handoff",
+  "status": "pass",
+  "startedAt": "2026-11-01T17:59:16.278Z",
+  "endedAt": "2026-11-01T18:00:54.348Z",
+  "tag": "j8a",
+  "checks": [
+    {
+      "name": "the coordinator is running before the journey",
+      "ok": true,
+      "evidence": "RVSFMNP running, screen ready",
+      "at": "2026-11-01T17:59:16.446Z"
+    },
+    {
+      "name": "jv task create (single investigate) exits 0",
+      "ok": true,
+      "evidence": "T0FJGN2; claude-opus-5-5 low on claude-second (claude-sdk)",
+      "at": "2026-11-01T17:59:17.828Z"
+    },
+    {
+      "name": "the task waits on the owner with a needs-decision report",
+      "ok": true,
+      "evidence": "waiting-owner: step 1 (investigate): needs-decision: Which word should the customers page title use: \"Clients\" or \"Customers\"?",
+      "at": "2026-11-01T17:59:43.567Z"
+    },
+    {
+      "name": "the report's options are 'Clients' and 'Customers'",
+      "ok": true,
+      "evidence": "RCY24YJ claude-sdk claude-second claude-opus-5-5 low done (turn ended: report needs-decision); question: Which word should the customers page title use: \"Clients\" or \"Customers\"?; options Clients | Customers",
+      "at": "2026-11-01T17:59:43.567Z"
+    },
+    {
+      "name": "jv handoff names the task and both options",
+      "ok": true,
+      "evidence": "5944 characters",
+      "at": "2026-11-01T18:00:06.199Z"
+    },
+    {
+      "name": "jv coordinator restart exits 0 and types the handoff",
+      "ok": true,
+      "evidence": "stop: stopped with /exit; new RFGASJC, screen ready, handoffTyped true",
+      "at": "2026-11-01T18:00:08.004Z"
+    },
+    {
+      "name": "a new coordinator session runs after the restart",
+      "ok": true,
+      "evidence": "RVSFMNP -> RFGASJC (186cba8b-2950-4cc3-a3bd-031c874b9bb4), screen starting",
+      "at": "2026-11-01T18:00:08.159Z"
+    },
+    {
+      "name": "the new session replied to the handoff",
+      "ok": true,
+      "evidence": "848 characters; tool calls: /home/ggomes/.jv/bin/jv status --json --project jevellan-live-sandbox",
+      "at": "2026-11-01T18:00:26.420Z"
+    },
+    {
+      "name": "its first reply names the waiting task",
+      "ok": true,
+      "evidence": "task T0FJGN2 \"Customers page title: Clients or Customers?\": I've picked up from the handoff, and the store matches it. Nothing is running. Six tasks landed today, the last one TJPY9HT (comment at the top of src/invoices/index.ts, ff57fd0), and nothing failed. One thing is waiting on you. T0FJGN2 found that \"Customers\" comes from src/web/server.ts:11, and html.ts puts it in both the browser tab and the page heading. Switching to \"Clients\" only in the title would leave the nav link and the \"No customers yet.\" empty state still saying Customers. If you pick Clients, I'd make it one task that renames all four places so the page is consistent. TQ9JMCZ still shows in status as stopped. That's the empty-state run you discarded, and I'm leaving it alone. 1. ...",
+      "at": "2026-11-01T18:00:26.421Z"
+    },
+    {
+      "name": "its first reply names both options",
+      "ok": true,
+      "evidence": "Clients: true, Customers: true",
+      "at": "2026-11-01T18:00:26.421Z"
+    },
+    {
+      "name": "the coordinator took the answer (it ran jv task answer)",
+      "ok": true,
+      "evidence": "/home/ggomes/.jv/bin/jv task answer T0FJGN2 \"Customers\" --json ; /home/ggomes/.jv/bin/jv notes write --project jevellan-live-sandbox <<'EOF' Owner's standing instructions: none yet. Decided 2026-11-01: T0FJGN2 page title stay...",
+      "at": "2026-11-01T18:00:54.077Z"
+    },
+    {
+      "name": "the answer is in the store as a message of the task",
+      "ok": true,
+      "evidence": "coordinator: Customers",
+      "at": "2026-11-01T18:00:54.195Z"
+    },
+    {
+      "name": "the task finishes",
+      "ok": true,
+      "evidence": "done: step investigate done",
+      "at": "2026-11-01T18:00:54.195Z"
+    },
+    {
+      "name": "the coordinator is left running",
+      "ok": true,
+      "evidence": "RFGASJC, screen ready",
+      "at": "2026-11-01T18:00:54.348Z"
+    }
+  ],
+  "elapsed": {
+    "restartMs": 20220,
+    "answerMs": 27773,
+    "totalMs": 98070
+  },
+  "deviations": [],
+  "notes": "before the restart, coordinator RVSFMNP got \"[jv] T0FJGN2 (Customers page title: Clients or Customers?) step investigate: needs-decision. Run: jv report RCY24YJ\" and said: The task \"Customers page title: Clients or Customers?\" (T0FJGN2) needs your choice, and it hasn't changed anything. Right now the page says \"Customers\". The title is set in `src/web/server.ts:11`, and `src/web/html.ts` uses it for both the browser tab and the page heading. If you choose \"Clients\", the risk is ending up with a half-renamed page. The nav link in `html.ts` and the empty-state text \"No customers yet.\" in `customers.ts` also say \"customers\", and the browser tests may check for that w...\nowner answer typed into the coordinator: \"T0FJGN2: Customers. Keep the page title as it is.\"; it replied: I've sent \"Customers\" to T0FJGN2. Session RCRYBGB is finishing the investigate step, which shouldn't change anything since the title stays as it is. The decision is in the notes, and nothing else is waiting on you.\nlast report (RCRYBGB): done: The customers page title stays \"Customers\", as you chose. Nothing needs to change, because that's already what the app shows: src/web/server.ts:11 passes 'Customers' to page(), and src/web/html.ts:2 puts it in both the browser tab and the page heading. The nav link (\"Customers\") and the empty-state text (\"No customers yet.\", src/web/customers.ts:3) already use the same word. I changed nothing in t..."
+}

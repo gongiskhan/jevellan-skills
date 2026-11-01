@@ -1,0 +1,65 @@
+{
+  "id": "J2",
+  "title": "Providers",
+  "status": "pass",
+  "startedAt": "2026-11-01T17:00:00.385Z",
+  "endedAt": "2026-11-01T17:00:08.960Z",
+  "checks": [
+    {
+      "name": "jv providers check --json exits 0",
+      "ok": true,
+      "evidence": "exit 0",
+      "at": "2026-11-01T17:00:04.671Z"
+    },
+    {
+      "name": "claude-main is ready with a weekly percentage",
+      "ok": true,
+      "evidence": "ready; the probe answered; week 65% (resets 2026-11-02T05:00:00.000Z)",
+      "at": "2026-11-01T17:00:04.671Z"
+    },
+    {
+      "name": "claude-second is ready with a weekly percentage",
+      "ok": true,
+      "evidence": "ready; the probe answered; week 43% (resets 2026-11-03T10:00:00.000Z)",
+      "at": "2026-11-01T17:00:04.671Z"
+    },
+    {
+      "name": "codex is ready (with its weekly percentage)",
+      "ok": true,
+      "evidence": "ready; ChatGPT pro answered account/rateLimits/read; week 1%",
+      "at": "2026-11-01T17:00:04.671Z"
+    },
+    {
+      "name": "Jev is reachable and lists the configured model",
+      "ok": true,
+      "evidence": "reachable, model jev-latest listed (providers.json jev.model jev-latest)",
+      "at": "2026-11-01T17:00:04.671Z"
+    },
+    {
+      "name": "the check did not rewrite providers.json",
+      "ok": true,
+      "evidence": "{\"file\":\"/home/ggomes/.jv/providers.json\",\"changed\":false}",
+      "at": "2026-11-01T17:00:04.671Z"
+    },
+    {
+      "name": "the text output shows the same",
+      "ok": true,
+      "evidence": "claude-main ready the probe answered; week 65% (resets 2026-11-02T05:00:00.000Z), five hours unknown; models: claude-opus-5-5, claude-fable-5-1, claude-sonnet-5-5, claude... / claude-second ready the probe answered; week 43% (resets 2026-11-03T10:00:00.000Z), five hours unknown / codex ready ChatGPT pro answered account/rateLimits/read; week 1% (resets 2026-11-04T10:57:54.000Z), five hours unknown; models: gpt-6-astra / jev ready reachable, model jev-latest listed",
+      "at": "2026-11-01T17:00:08.958Z"
+    },
+    {
+      "name": "the store has probe usage rows for claude-main, claude-second (and codex when ready)",
+      "ok": true,
+      "evidence": "codex 1% at 2026-11-01T17:00:01.472Z; claude-second 43% at 2026-11-01T17:00:01.890Z; claude-main 65% at 2026-11-01T17:00:02.552Z; claude-main 65% at 2026-11-01T17:00:05.728Z; codex 1% at 2026-11-01T17:00:05.756Z; claude-second 43% at 2026-11-01T17:00:06.534Z",
+      "at": "2026-11-01T17:00:08.959Z"
+    }
+  ],
+  "elapsed": {
+    "checkJsonMs": 4284,
+    "checkTextMs": 4287,
+    "weeklyPct": "claude-main 65%, claude-second 43%, codex 1%",
+    "totalMs": 8574
+  },
+  "deviations": [],
+  "notes": "five-hour usage is not returned by the probes for claude-main, claude-second, codex (\"five hours unknown\"; docs/findings.md); J2 asks only for weekly percentages.\nother providers (not part of J2): glm needs-login (fix: write the key to /home/ggomes/.jv/secrets/glm.key (mode 600)); deepseek needs-login (fix: write the key to /home/ggomes/.jv/secrets/deepseek.key (mode 600)); kimi needs-login (fix: write the key to /home/ggomes/.jv/secrets/kimi.key (mode 600)); ollama unknown (fix: make sure http://127.0.0.1:11434/v1 is reachable from this machine, or set \"enabled\": false for ollama in providers.json)"
+}

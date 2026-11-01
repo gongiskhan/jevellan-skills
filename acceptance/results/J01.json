@@ -1,0 +1,104 @@
+{
+  "id": "J1",
+  "title": "Install",
+  "status": "pass",
+  "startedAt": "2026-11-01T16:58:49.238Z",
+  "endedAt": "2026-11-01T16:58:58.383Z",
+  "checks": [
+    {
+      "name": "the package on GitHub main is this repository HEAD (so \"the package\" is one thing)",
+      "ok": true,
+      "evidence": "remote main bcf93d2eb97b5ac76fa5ae6d1ba2b82ef64f4eb0; local HEAD bcf93d2eb97b5ac76fa5ae6d1ba2b82ef64f4eb0",
+      "at": "2026-11-01T16:58:49.711Z"
+    },
+    {
+      "name": "the sandbox main checkout is clean before the install",
+      "ok": true,
+      "evidence": "HEAD 61fc71abcf86d4cd14a127bb47ff473fddece17b",
+      "at": "2026-11-01T16:58:49.711Z"
+    },
+    {
+      "name": "apm install gongiskhan/jevellan-skills --target claude exits 0",
+      "ok": true,
+      "evidence": "exit 0; [+] gongiskhan/jevellan-skills (already in apm.yml) | [>] Installing 1 new package... | [+] gongiskhan/jevellan-skills @bcf93d2e (cached) | |-- 1 agents adopted -> .claude/agents/ | |-- 1 hook(s) integrated -> .claude/settings.json | |-- 14 skill(s) integrated -> .claude/skills/ | [i] Added apm_modules/ to .gitignore | [!] 1 dependency unpinned: gongiskhan/jevellan-skills -- add #tag or #sha to | [*] Installed 1 APM dependency in 2.1s.",
+      "at": "2026-11-01T16:58:52.443Z"
+    },
+    {
+      "name": ".gitignore restored and the APM files excluded once",
+      "ok": true,
+      "evidence": "/home/ggomes/jevellan-projects/jevellan-live-sandbox/.git/info/exclude: already listed",
+      "at": "2026-11-01T16:58:52.453Z"
+    },
+    {
+      "name": "14 jevellan-* skills in the package and 14 installed under .claude/skills",
+      "ok": true,
+      "evidence": "package 14, installed 14: jevellan-coordinator jevellan-duty-answer jevellan-duty-automate jevellan-duty-converse jevellan-duty-document jevellan-duty-implement jevellan-duty-investigate jevellan-duty-plan jevellan-duty-verify jevellan-landing jevellan-router jevellan-workflow-automation jevellan-workflow-bug jevellan-workflow-feature",
+      "at": "2026-11-01T16:58:52.454Z"
+    },
+    {
+      "name": "every installed SKILL.md is byte-identical to the package (cmp against the APM-fetched copy and this repository)",
+      "ok": true,
+      "evidence": "14/14 identical; fetched copy /home/ggomes/jevellan-projects/jevellan-live-sandbox/apm_modules/gongiskhan/jevellan-skills",
+      "at": "2026-11-01T16:58:52.513Z"
+    },
+    {
+      "name": "every file of every skill folder is installed byte-identical (the router with its scripts/jv runtime source)",
+      "ok": true,
+      "evidence": "269 files identical",
+      "at": "2026-11-01T16:58:53.190Z"
+    },
+    {
+      "name": "the agent at .claude/agents/jevellan-coordinator.md, byte-identical to .apm/agents/jevellan-coordinator.agent.md",
+      "ok": true,
+      "evidence": "/home/ggomes/jevellan-projects/jevellan-live-sandbox/.claude/agents/jevellan-coordinator.md (10589 bytes)",
+      "at": "2026-11-01T16:58:53.193Z"
+    },
+    {
+      "name": "the jv Stop hook is merged into .claude/settings.json",
+      "ok": true,
+      "evidence": "node ~/.jv/runtime/dist/report-guard.mjs",
+      "at": "2026-11-01T16:58:53.193Z"
+    },
+    {
+      "name": "jv doctor (run from the checkout) has no FAIL",
+      "ok": true,
+      "evidence": "30 lines: 26 OK, 4 WARN, 0 FAIL; exit 0",
+      "at": "2026-11-01T16:58:58.368Z"
+    },
+    {
+      "name": "jv doctor WARNs only for providers without key files",
+      "ok": true,
+      "evidence": "key:glm: key file missing (/home/ggomes/.jv/secrets/glm.key); key:deepseek: key file missing (/home/ggomes/.jv/secrets/deepseek.key); key:kimi: key file missing (/home/ggomes/.jv/secrets/kimi.key); login:glm: key file missing (/home/ggomes/.jv/secrets/glm.key); login not probed",
+      "at": "2026-11-01T16:58:58.369Z"
+    },
+    {
+      "name": "doctor: the hook line is OK for the checkout",
+      "ok": true,
+      "evidence": "OK the jv Stop hook is registered in /home/ggomes/jevellan-projects/jevellan-live-sandbox/.claude/settings.json",
+      "at": "2026-11-01T16:58:58.369Z"
+    },
+    {
+      "name": "doctor: the project's installed skill copies match ~/.jv/skills",
+      "ok": true,
+      "evidence": "OK 14 skills in /home/ggomes/jevellan-projects/jevellan-live-sandbox/.claude/skills match /home/ggomes/.jv/skills",
+      "at": "2026-11-01T16:58:58.369Z"
+    },
+    {
+      "name": "git status --porcelain of the sandbox is empty",
+      "ok": true,
+      "evidence": "clean; HEAD 61fc71abcf86d4cd14a127bb47ff473fddece17b unchanged",
+      "at": "2026-11-01T16:58:58.376Z"
+    }
+  ],
+  "elapsed": {
+    "apmInstallMs": 2731,
+    "doctorMs": 5175,
+    "pathsWritten": ".claude/agents/jevellan-coordinator.md, .claude/apm-hooks.json, .claude/settings.json, .claude/skills/jevellan-coordinator, .claude/skills/jevellan-duty-answer, .claude/skills/jevellan-duty-automate, .claude/skills/jevellan-duty-converse, .claude/skills/jevellan-duty-document, .claude/skills/jevellan-duty-implement, .claude/skills/jevellan-duty-investigate, .claude/skills/jevellan-duty-plan, .claude/skills/jevellan-duty-verify, .claude/skills/jevellan-landing, .claude/skills/jevellan-router, .claude/skills/jevellan-workflow-automation, .claude/skills/jevellan-workflow-bug, .claude/skills/jevellan-workflow-feature, apm.yml, apm.lock.yaml, apm_modules/gongiskhan/jevellan-skills/",
+    "filesUnderClaude": 272,
+    "totalMs": 9145
+  },
+  "deviations": [
+    "After apm install the journey restores the tracked .gitignore (git checkout -- .gitignore) and lists apm.yml, apm.lock.yaml and apm_modules/ in .git/info/exclude (once). Reason: APM 0.24.0 always writes apm.yml and apm.lock.yaml at the consumer root and appends apm_modules/ to the tracked .gitignore (docs/findings.md); the owner rule is that nothing edits the main checkout except landing, so its status must stay empty."
+  ],
+  "notes": "apm install output (filtered): [*] Validating 1 package... | [+] gongiskhan/jevellan-skills (already in apm.yml) | [>] Installing 1 new package... | [i] Targets: claude (source: --target flag) | [+] gongiskhan/jevellan-skills @bcf93d2e (cached) | |-- 1 agents adopted -> .claude/agents/ | |-- 1 hook(s) integrated -> .claude/settings.json | | Stop: runs ~/.jv/runtime/dist/report-guard.mjs (jevellan.json) | |-- 14 skill(s) integrated -> .claude/skills/ | [i] Added apm_modules/ to .gitignore | [!] 1 dependency unpinned: gongiskhan/jevellan-skills -- add #tag or #sha to | prevent drift | [*] Installed 1 APM dependency in 2.1s.\ngit status right after apm install: M .gitignore\napm install edited the tracked .gitignore, adding: # APM dependencies, apm_modules/\nAPM wrote under /home/ggomes/jevellan-projects/jevellan-live-sandbox: .claude/agents/jevellan-coordinator.md, .claude/apm-hooks.json, .claude/settings.json, .claude/skills/jevellan-coordinator, .claude/skills/jevellan-duty-answer, .claude/skills/jevellan-duty-automate, .claude/skills/jevellan-duty-converse, .claude/skills/jevellan-duty-document, .claude/skills/jevellan-duty-implement, .claude/skills/jevellan-duty-investigate, .claude/skills/jevellan-duty-plan, .claude/skills/jevellan-duty-verify, .claude/skills/jevellan-landing, .claude/skills/jevellan-router, .claude/skills/jevellan-workflow-automation, .claude/skills/jevellan-workflow-bug, .claude/skills/jevellan-workflow-feature, apm.yml, apm.lock.yaml, apm_modules/gongiskhan/jevellan-skills/"
+}

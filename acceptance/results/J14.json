@@ -1,0 +1,320 @@
+{
+  "id": "J14",
+  "title": "Child task",
+  "status": "pass",
+  "startedAt": "2026-11-01T18:55:25.022Z",
+  "endedAt": "2026-11-01T18:55:34.374Z",
+  "tag": "j14a",
+  "checks": [
+    {
+      "name": "the coordinator is running before the journey",
+      "ok": true,
+      "evidence": "RFGASJC claude-opus-5-5 high on claude-main; screen ready",
+      "at": "2026-11-01T18:55:25.185Z"
+    },
+    {
+      "name": "the coordinator creates one automation task for the message",
+      "ok": true,
+      "evidence": "TVMA33M: Playwright: create, list and delete a customer",
+      "at": "2026-11-01T18:55:25.186Z"
+    },
+    {
+      "name": "an automation task whose plan step Jev did not skip",
+      "ok": true,
+      "evidence": "TVMA33M done [1.plan:done 2.automate:done 3.verify:done] landing land/landed",
+      "at": "2026-11-01T18:55:25.189Z"
+    },
+    {
+      "name": "the parent's workflow is automation (plan, automate, verify) and its plan step ran",
+      "ok": true,
+      "evidence": "TVMA33M automation \"Playwright: create, list and delete a customer\"; steps 1.plan:done 2.automate:done 3.verify:done; workflow decision D7GDJYN {\"answers\":{\"needs_plan\":{\"value\":true,\"probability\":0.96}},\"skip\":[]}",
+      "at": "2026-11-01T18:55:34.088Z"
+    },
+    {
+      "name": "the plan step reports needs-decision proposing a child feature task",
+      "ok": true,
+      "evidence": "EZDMAY7 (RBM5ABQ) at 2026-11-01T18:25:53.242Z: question Should the coordinator create the child feature task above (create form, delete button per row, the routes and data-testids listed, with tests and a CHANGELOG line) before the automation is written?; options A. Yes, as proposed | B. Yes, with confirm on delete | C. No new UI, list only",
+      "at": "2026-11-01T18:55:34.090Z"
+    },
+    {
+      "name": "exactly one child task with parent_task_id set to the parent",
+      "ok": true,
+      "evidence": "TB1EXPS feature \"Create form and delete buttons on the customers page\" done",
+      "at": "2026-11-01T18:55:34.091Z"
+    },
+    {
+      "name": "the coordinator ran jv task create --parent TVMA33M",
+      "ok": true,
+      "evidence": "2026-11-01T18:37:28.461Z: /home/ggomes/.jv/bin/jv task create --project jevellan-live-sandbox --kind feature --parent TVMA33M --title \"Create form and delete buttons on the customers page\" --json --text \"$(cat <<'EOF' What: let people create and delete customers from the customers page, with stable data-testid selectors on every part a browser automation needs. Why: TVMA33M \"Playwright: create, list and delete a customer\" automates creating a customer, checking it in the list and deleting it. Today the page only lists customers: src/web/server.ts answers only GET, and customersBody in src/web/customers.ts renders a Name/VAT table or \"No customers yet.\" The owner approved this design (option A of TVMA33M's plan). It b...",
+      "at": "2026-11-01T18:55:34.275Z"
+    },
+    {
+      "name": "the child is a feature task created after the plan asked",
+      "ok": true,
+      "evidence": "TB1EXPS kind feature, created 2026-11-01T18:37:28.689Z; needs-decision 2026-11-01T18:25:53.242Z",
+      "at": "2026-11-01T18:55:34.275Z"
+    },
+    {
+      "name": "the child's base commit is the parent's branch head when the child was created",
+      "ok": true,
+      "evidence": "child jv/create-form-and-delete-buttons-on-the-cu-b1exps base fe42d4e7b4be25655ff962d1aefc70cb577a1614; parent jv/playwright-create-list-and-delete-a-cust-vma33m at 2026-11-01T18:37:28.689Z: fe42d4e7b4be25655ff962d1aefc70cb577a1614; parent base fe42d4e7b4be25655ff962d1aefc70cb577a1614",
+      "at": "2026-11-01T18:55:34.283Z"
+    },
+    {
+      "name": "the child's steps are all done or skipped, each run with a report",
+      "ok": true,
+      "evidence": "1.plan:done 2.implement:done 3.verify:done 4.document:done",
+      "at": "2026-11-01T18:55:34.286Z"
+    },
+    {
+      "name": "the child's landing row is landed, into the parent's branch",
+      "ok": true,
+      "evidence": "LR4XEPZ ask-owner failed : answered: Land now (jv land --force) | LFK99Z3 land landed a07ffd763b626d7a43f8efe1294a75f95e2eeae4: landed a07ffd763b62 on jv/playwright-create-list-and-delete-a-cust-vma33m (the branch of the parent TVMA33M) (merge --ff-only); checks passed: lint, test; task: landed a07ffd763b62 on jv/playwright-create-list-and-delete-a-cust-vma33m (the branch of the parent TVMA33M)",
+      "at": "2026-11-01T18:55:34.287Z"
+    },
+    {
+      "name": "when the child landed, the parent's branch held its commit",
+      "ok": true,
+      "evidence": "2026-11-01T18:46:39.605Z: a07ffd763b626d7a43f8efe1294a75f95e2eeae4 on jv/playwright-create-list-and-delete-a-cust-vma33m (head a07ffd763b626d7a43f8efe1294a75f95e2eeae4)",
+      "at": "2026-11-01T18:55:34.287Z"
+    },
+    {
+      "name": "when the child landed, main did not hold its commit",
+      "ok": true,
+      "evidence": "2026-11-01T18:46:39.605Z: main fe42d4e7b4be25655ff962d1aefc70cb577a1614, child commit on main: false",
+      "at": "2026-11-01T18:55:34.287Z"
+    },
+    {
+      "name": "the coordinator answered the parent only after the child landed",
+      "ok": true,
+      "evidence": "M8J0A7J coordinator 2026-11-01T18:46:00.873Z: A. Yes, as proposed | M8D706X coordinator 2026-11-01T18:46:01.022Z: The child TB1EXPS has landed into this branch at a07ffd7: the create form, POST /customers, POST /customers/:id/delete, src/web/app.ts and all nine data-testids are in. Build the automation as your plan describes, and add a CHANGELOG.md line for it.; child landed 2026-11-01T18:45:55.765Z",
+      "at": "2026-11-01T18:55:34.288Z"
+    },
+    {
+      "name": "the parent's plan, automate and verify steps are done with done reports",
+      "ok": true,
+      "evidence": "1.plan:done 2.automate:done 3.verify:done",
+      "at": "2026-11-01T18:55:34.289Z"
+    },
+    {
+      "name": "the parent's landing row is landed and main is at the parent's landed commit",
+      "ok": true,
+      "evidence": "L843KV7 ask-owner failed : answered: Land now (jv land --force) | L5MEYY0 land landed 302f47888b5542fb83621e73da15c385e3a008f9: landed 302f47888b55 on main (merge --ff-only); checks passed: lint, test; main 302f47888b5542fb83621e73da15c385e3a008f9",
+      "at": "2026-11-01T18:55:34.297Z"
+    },
+    {
+      "name": "main now holds the child's commit through the parent",
+      "ok": true,
+      "evidence": "a07ffd763b626d7a43f8efe1294a75f95e2eeae4 on main 302f47888b5542fb83621e73da15c385e3a008f9",
+      "at": "2026-11-01T18:55:34.301Z"
+    },
+    {
+      "name": "the automation scripts and the child's data-testid attributes are on main",
+      "ok": true,
+      "evidence": "automations: automations/README.md, automations/customers-create-delete.ts; data-testid in src: 302f47888b5542fb83621e73da15c385e3a008f9:src/web/app.test.ts:3 302f47888b5542fb83621e73da15c385e3a008f9:src/web/customers.test.ts:8 302f47888b5542fb83621e73da15c385e3a008f9:src/web/customers.ts:3; changed since fe42d4e7: CHANGELOG.md, README.md, automations/README.md, automations/customers-create-delete.ts, package.json, src/web/app.test.ts, src/web/app.ts, src/web/customers.test.ts, src/web/customers.ts, src/web/server.ts, tests/browser/customers.spec.ts, tsconfig.json",
+      "at": "2026-11-01T18:55:34.312Z"
+    },
+    {
+      "name": "every started step (parent and child) has a placement decision with probabilities, every run a placement",
+      "ok": true,
+      "evidence": "8 runs placed",
+      "at": "2026-11-01T18:55:34.326Z"
+    },
+    {
+      "name": "the sandbox checkout is clean on main",
+      "ok": true,
+      "evidence": "main 302f47888b5542fb83621e73da15c385e3a008f9; status clean",
+      "at": "2026-11-01T18:55:34.337Z"
+    },
+    {
+      "name": "main holds the three J4 changes plus J14's",
+      "ok": true,
+      "evidence": "J4 TC2SEC1 5499602a19e8e4a578971442d28987d4830f50b6, T4HA3RT e86e0904f5afab1dc8ee27147c61419c0426a604, TAFEFXT ceec900e78d72f811f627538145ff21fa090d75c; J14 TVMA33M 302f47888b5542fb83621e73da15c385e3a008f9",
+      "at": "2026-11-01T18:55:34.353Z"
+    }
+  ],
+  "elapsed": {
+    "parentCreatedToNeedsDecisionMs": 108545,
+    "needsDecisionToChildCreatedMs": 695447,
+    "childCreatedToLandedMs": 507076,
+    "childLandedToParentAnswerMs": 5108,
+    "parentCreatedToLandedMs": 1645291,
+    "totalMs": 9352
+  },
+  "deviations": [
+    "The owner message adapts the example to the sandbox: its customers page only lists customers (no create form, no delete, no stable selectors), so the message says so and asks the plan to propose a child feature that adds the form, a delete button per row and data-testid attributes, instead of saying the form and list exist without selectors.",
+    "The parent's branch had no commit of its own when the child was created (plan.md is not committed), so its head was main's fe42d4e and the child's base commit cannot tell the parent's branch from main here; that the child starts from the parent's branch is covered by the unit test \"create --parent\" in test/tasks.test.ts, and its landing into the parent's branch is checked below.",
+    "The brief's closing line says main holds \"the three landed changes\"; after J14 it holds the three J4 changes, J14's parent (with its child) and the other journeys' landings: 12 first-parent commits since 61fc71a."
+  ],
+  "notes": "The first invocation of tag j14a was stopped at 18:36Z and restarted with the same tag: its owner-question detection missed the coordinator's numbered question (no question mark); the script was widened to the numbered open questions the coordinator's prompt asks for. The parent task and everything before were kept.\nThis result is a re-assertion of tag j14a at the end (nothing typed, no task created) after the base-commit check was made explicit. The journey itself ran from 18:23:34Z to 18:52:07Z, 28.5 min. needsDecisionToChildCreatedMs (695 s) is mostly the owner: the coordinator asked at 18:26Z and the first invocation missed the question until it was restarted at 18:36Z; the coordinator created the child 30 s after the owner's answer. Both landings were routed ask-owner by Jev (child 0.83, parent 0.82; the change adds a delete route) and landed on \"Land now\".\nThe coordinator's brief for TVMA33M: What: a Playwright automation of the customer flow on this sandbox app's own web pages. It opens the customers page, creates a customer (name and VAT number), checks that the new customer appears in the list, then deletes it and checks that it is gone. Put one script for this flow in the automation folder (project.json automationDir, default automations/), with a --dry-run flag that stops before the first create submit. Target: the app started with `npm start`, serving on http://127.0.0.1:4173 (PORT overrides it). The customers page is the one built in src/web/server.ts (page('Customers', customersBody(rows))) and src/web/customers.ts. Customer records are stored by src/customers/index.ts as JSON under SANDBOX_DATA_DIR. Run against a throwaway SANDBOX_DATA_DIR, or restore the data afterwards, so a run leaves the owner's sandbox data as it was. No credentials needed. What a full run may do: really create and delete customers, but only the one the script created itself (use a recognisable test name, e.g. with a timestamp). Never delete any other record. Prerequisite, and a decision for the owner before any automating: today the customers page only lists customers. It has no form to create one, no way to delete one, and the list has no stable selectors. So the first step (plan, or the start of automate if there is no plan step) must stop and report needs-decision. It should propose a child feature task that adds a create form (name and VAT number) and a delete button on each row...\nmain since 61fc71a (first parent): 302f478 Add a Playwright automation that creates, lists and deletes a test customer | a07ffd7 Document the customers page form and delete buttons in the README | 57f2813 Cover creating, deleting and the empty-field error in browser specs | a57d0a8 Create and delete customers from the customers page | fe42d4e Describe what the web html module provides | 89354e1 Describe what the customers module stores | ff57fd0 Describe what the invoices module computes | e0f244b Document the address npm start serves on | ceec900 Merge branch 'main' into jv/empty-state-on-the-customers-page-afefxt | dbbb940 Cover the customers page states in browser tests | dc1ac1f Show an empty state on the customers page | 694c301 Test the HTML escape helper in its own module\nParent TVMA33M \"Playwright: create, list and delete a customer\" (jv/playwright-create-list-and-delete-a-cust-vma33m); child TB1EXPS \"Create form and delete buttons on the customers page\" (jv/create-form-and-delete-buttons-on-the-cu-b1exps).\nOwner answers typed into the coordinator: 2026-11-01T18:37:57.238Z child: \"1 A. Yes: create the child feature task the plan proposes, with --parent TVMA33M, and answer TVMA33M only after the child has landed into its branch.\"; 2026-11-01T18:46:29.279Z landing: \"Land now\"; 2026-11-01T18:51:58.669Z landing: \"Land now\".",
+  "tables": [
+    {
+      "title": "TVMA33M parent: Playwright: create, list and delete a customer (automation) runs",
+      "columns": [
+        "Step",
+        "Run",
+        "Runtime",
+        "Provider",
+        "Model",
+        "Effort",
+        "Top probabilities",
+        "Report"
+      ],
+      "rows": [
+        [
+          "1.plan",
+          "RBM5ABQ",
+          "claude-sdk",
+          "claude-second",
+          "claude-opus-5-5",
+          "high",
+          "model: Opus 0.97, Fable 0.02, GPT 0.01; effort: high 0.92, xhigh 0.08, low 0",
+          "needs-decision"
+        ],
+        [
+          "1.plan",
+          "RZNZ34K",
+          "claude-sdk",
+          "claude-second",
+          "claude-opus-5-5",
+          "high",
+          "model: Opus 0.97, Fable 0.02, GPT 0.01; effort: high 0.92, xhigh 0.08, low 0",
+          "done"
+        ],
+        [
+          "2.automate",
+          "R71ET3E",
+          "claude-sdk",
+          "claude-second",
+          "claude-opus-5-5",
+          "high",
+          "model: Opus 0.76, GPT 0.24, Fable 0; effort: high 0.78, xhigh 0.15, max 0.07",
+          "done"
+        ],
+        [
+          "3.verify",
+          "RGJKJS5",
+          "claude-sdk",
+          "claude-second",
+          "claude-opus-5-5",
+          "high",
+          "model: Opus 1, GPT 0, Fable 0; effort: high 1, low 0, medium 0",
+          "done"
+        ]
+      ]
+    },
+    {
+      "title": "TVMA33M landings",
+      "columns": [
+        "Landing",
+        "Route",
+        "State",
+        "Route probabilities",
+        "Commit",
+        "Reason"
+      ],
+      "rows": [
+        [
+          "L843KV7",
+          "ask-owner",
+          "failed",
+          "ask-owner 0.82, verify-then-land 0.15, land 0.03",
+          "",
+          "answered: Land now (jv land --force)"
+        ],
+        [
+          "L5MEYY0",
+          "land",
+          "landed",
+          "",
+          "302f47888b5542fb83621e73da15c385e3a008f9",
+          "landed 302f47888b55 on main (merge --ff-only); checks passed: lint, test"
+        ]
+      ]
+    },
+    {
+      "title": "TB1EXPS child of TVMA33M: Create form and delete buttons on the customers page (feature) runs",
+      "columns": [
+        "Step",
+        "Run",
+        "Runtime",
+        "Provider",
+        "Model",
+        "Effort",
+        "Top probabilities",
+        "Report"
+      ],
+      "rows": [
+        [
+          "1.plan",
+          "RCSG8WW",
+          "claude-sdk",
+          "claude-second",
+          "claude-opus-5-5",
+          "high",
+          "model: Opus 0.98, GPT 0.01, Fable 0.01; effort: high 0.96, xhigh 0.04, low 0",
+          "done"
+        ],
+        [
+          "2.implement",
+          "R87ZNKX",
+          "claude-sdk",
+          "claude-second",
+          "claude-opus-5-5",
+          "xhigh",
+          "model: Opus 0.89, GPT 0.08, Fable 0.03; effort: xhigh 0.7, high 0.26, max 0.04",
+          "done"
+        ],
+        [
+          "3.verify",
+          "REZ75FS",
+          "claude-sdk",
+          "claude-second",
+          "claude-opus-5-5",
+          "high",
+          "model: Opus 0.92, GPT 0.07, Sonnet 0.01; effort: high 0.9, xhigh 0.1, low 0",
+          "done"
+        ],
+        [
+          "4.document",
+          "REVCCXW",
+          "claude-sdk",
+          "claude-second",
+          "claude-sonnet-5-5",
+          "medium",
+          "model: Sonnet 0.84, Opus 0.14, Haiku 0.02; effort: medium 0.95, low 0.05, high 0",
+          "done"
+        ]
+      ]
+    },
+    {
+      "title": "TB1EXPS landings",
+      "columns": [
+        "Landing",
+        "Route",
+        "State",
+        "Route probabilities",
+        "Commit",
+        "Reason"
+      ],
+      "rows": [
+        [
+          "LR4XEPZ",
+          "ask-owner",
+          "failed",
+          "ask-owner 0.83, verify-then-land 0.09, land 0.08",
+          "",
+          "answered: Land now (jv land --force)"
+        ],
+        [
+          "LFK99Z3",
+          "land",
+          "landed",
+          "",
+          "a07ffd763b626d7a43f8efe1294a75f95e2eeae4",
+          "landed a07ffd763b62 on jv/playwright-create-list-and-delete-a-cust-vma33m (the branch of the parent TVMA33M) (merge --ff-only); checks passed: lint, test"
+        ]
+      ]
+    }
+  ]
+}

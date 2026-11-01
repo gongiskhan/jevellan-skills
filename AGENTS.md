@@ -225,6 +225,41 @@ pass, 1 otherwise; run results are recorded in `acceptance/RESULTS.md`.
   default `sandbox-clone`); `--only`, `--tag` (request id suffix, so a rerun picks up the same tasks) and
   `--timeout-min`.
 - `phase6-coordinator.mjs`: the coordinator on the real sandbox (talked to only; it creates no tasks).
+- `jNN-<slug>.mjs`: the acceptance journeys of brief section 15 (J1 `j01-install.mjs`, J2 `j02-providers.mjs`, J3
+  `j03-coordinator.mjs`, ...), each on the real sandbox, through `journey.mjs`: `--tag` (request id suffix, so a rerun
+  reuses its tasks), `--note`, and a `results/JNN.json` per run (id, title, status, checks with evidence, elapsed,
+  deviations, notes). `results.mjs` rebuilds `RESULTS.md` from those, in journey order; each journey runs it at the
+  end. J3 leaves the coordinator running; `--fresh` restarts only a coordinator an earlier J3 run started.
+  A journey's optional `tables` ([{title, columns, rows}]) are rendered after its checks. J4 (`j04-three-tasks.mjs`)
+  types into the coordinator through `coord.mjs` (its window, transcript, idle detection, typing as the owner); the
+  tasks the coordinator creates are kept in `results/J04-state-<tag>.json`, so a rerun with the tag reuses them, and
+  an owner question it cannot answer itself ("Land now" it can) waits for `results/J04-answer.txt`. `j05-live.mjs
+  --run R` records what only a live claude-tmux run shows (jv attach, the window, jv tail against the transcript); J4
+  and J5 `--ask` start it for every visible run. J5 leaves its loopback viewer running and J16 stops it.
+  J6, J7, J8, J11 and J13 create their tasks directly with `jv task create` through `task-lib.mjs` (create by
+  request id, settle, answering an asked landing "Land now", and `results/JNN-state-<tag>.json` of what a journey did
+  by hand, so a rerun with the tag does not attach, kill or override twice). J6 stops the coordinator and starts it
+  again; J8 restarts it. J9 (`j09-jev-refused.mjs`), J10 (`j10-ceiling.mjs`) and J12 (`j12-codex.mjs`) change
+  global config for one task each: they wait for `task-lib.mjs` `waitQuiet()` (no task in flight, no live step run),
+  then move `jev.key` aside in the same folder, lower `claude-main.ceilingPct` in `providers.json` (`--backup FILE`),
+  or edit the installed router policy's model descriptions (`--backup FILE`). Each restores in a `finally` block and
+  on SIGINT/SIGTERM, records the restore as checks (mode 600, `cmp`, sha256 equal to the repository policy), and
+  leaves a `results/JNN-state-<tag>.json.*` marker with the manual restore command while the change is in place.
+  They make their placement once per tag: a rerun with the same tag refuses to run (use a new tag).
+  J14 (`j14-child-task.mjs --tag T`) waits for `waitQuiet()`, types one automation request into the coordinator and
+  plays the owner from the store and the transcript: "Land now" on an asked landing, approval of the plan's child
+  proposal when the coordinator asks (a reply ending in "?" or in numbered open questions), anything else through
+  `results/J14-question.txt` and `results/J14-answer.txt`. It snapshots the parent's branch and main the moment the
+  child's landing is landed (kept in `results/J14-state-<tag>.json`, main's reflog stands in on a rerun that missed
+  it). If Jev skips the parent's plan step it discards the task, writes a project `workflows/automation.json` that
+  always plans, asks again, and moves the override out after the run. A rerun with the tag reuses the parent.
+  J15 (`j15-evals.mjs`) runs `jv evals route|landing --since 2026-11-01` into the package's cases files and both
+  policies' `evals/run.mjs` (real Jev calls; exit 1 on a low held-out score counts as a run), backs both files up to
+  `JV_ACCEPT_BACKUP_DIR` (default the system temporary folder) first, and searches what it wrote for machine paths
+  and the owner's name and e-mail. J17 (`j17-no-leaks.mjs [--final] [--extra PATH]...`) searches the store, logs,
+  evidence folders, jv config, this repository and the acceptance outputs for every key file line and every
+  credential token value (patterns on stdin, file names only), with positive controls; `--final` first stops the
+  coordinator and checks the state the run leaves. Both create no task and can be rerun.
 - `phase8-viewer.mjs <T>` and `viewer-check.mjs <T> [--bind ADDRESS]`: the viewer in headless Chromium at desktop and
   phone widths. Playwright is not a dependency: it comes from `JV_PLAYWRIGHT_DIR`, the sandbox's `node_modules` or a
   global npm folder.

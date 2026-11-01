@@ -1,0 +1,148 @@
+{
+  "id": "J17",
+  "title": "No leaks",
+  "status": "pass",
+  "startedAt": "2026-11-01T19:08:50.124Z",
+  "endedAt": "2026-11-01T19:08:53.104Z",
+  "tag": "j17c",
+  "checks": [
+    {
+      "name": "final state: jv coordinator stop --project jevellan-live-sandbox",
+      "ok": true,
+      "evidence": "exit 0; stopped false: the coordinator is not running",
+      "at": "2026-11-01T19:08:50.274Z"
+    },
+    {
+      "name": "final state: no jv-R<6>, jv-coord-* or jv-login-* tmux session is left",
+      "ok": true,
+      "evidence": "before: codex-bridge-owner-plan, jv-bridge-ekoa-code, jv-build, rc; after: codex-bridge-owner-plan, jv-bridge-ekoa-code, jv-build, rc",
+      "at": "2026-11-01T19:08:50.279Z"
+    },
+    {
+      "name": "final state: the tmux sessions jv does not own are untouched",
+      "ok": true,
+      "evidence": "still there: codex-bridge-owner-plan, jv-bridge-ekoa-code, jv-build, rc",
+      "at": "2026-11-01T19:08:50.279Z"
+    },
+    {
+      "name": "final state: no jv ui, jv run or jv exec process is left",
+      "ok": true,
+      "evidence": "none in ps",
+      "at": "2026-11-01T19:08:50.364Z"
+    },
+    {
+      "name": "final state: jv status --json shows no running work (and the store has no live session)",
+      "ok": true,
+      "evidence": "2 tasks not done: T3XKZ7A stopped, TQ9JMCZ stopped; 0 sessions listed; live session rows: none",
+      "at": "2026-11-01T19:08:50.495Z"
+    },
+    {
+      "name": "final state: the sandbox main checkout is clean on main",
+      "ok": true,
+      "evidence": "branch main, HEAD 302f478, git status --porcelain empty",
+      "at": "2026-11-01T19:08:50.505Z"
+    },
+    {
+      "name": "final state: main holds every change landed into the sandbox, the three J4 changes among them",
+      "ok": true,
+      "evidence": "10/10 landed commits are on main (TRAAZCQ 694c301, TC2SEC1 5499602, T4HA3RT e86e090, TAFEFXT ceec900, TEVV4PD e0f244b, TJPY9HT ff57fd0, T3JBC7M 89354e1, TJF66H7 fe42d4e, TB1EXPS a07ffd7, TVMA33M 302f478); J4: TC2SEC1, T4HA3RT, TAFEFXT; main descends from 61fc71a",
+      "at": "2026-11-01T19:08:50.545Z"
+    },
+    {
+      "name": "the secret values to search for were read (every key file and every credentials file of the provider homes)",
+      "ok": true,
+      "evidence": "secrets/claude-main.token: 1 value; secrets/claude-second.token: 1 value; secrets/jev.key: 1 value; homes/codex/.codex/auth.json ($.tokens.id_token, $.tokens.access_token, $.tokens.refresh_token, $.tokens.account_id): 4 values",
+      "at": "2026-11-01T19:08:50.634Z"
+    },
+    {
+      "name": "the search finds what is there (a task id in the store, a line of this script in the repository)",
+      "ok": true,
+      "evidence": "task TB1EXPS in store.sqlite; the script line in acceptance/j17-no-leaks.mjs",
+      "at": "2026-11-01T19:08:50.935Z"
+    },
+    {
+      "name": "no key file or credential value in the store",
+      "ok": true,
+      "evidence": "no match; 3 files under $JV_HOME/store.sqlite, $JV_HOME/store.sqlite-wal, $JV_HOME/store.sqlite-shm",
+      "at": "2026-11-01T19:08:51.030Z"
+    },
+    {
+      "name": "no key file or credential value in the logs",
+      "ok": true,
+      "evidence": "no match; 69 files under $JV_HOME/logs",
+      "at": "2026-11-01T19:08:51.046Z"
+    },
+    {
+      "name": "no key file or credential value in the evidence",
+      "ok": true,
+      "evidence": "no match; 148 files under 8 .jv-evidence folders",
+      "at": "2026-11-01T19:08:51.097Z"
+    },
+    {
+      "name": "no key file or credential value in the jv config",
+      "ok": true,
+      "evidence": "no match; 60 files under $JV_HOME/projects, $JV_HOME/providers.json",
+      "at": "2026-11-01T19:08:51.116Z"
+    },
+    {
+      "name": "no key file or credential value in the repository",
+      "ok": true,
+      "evidence": "no match; 9528 files under the repository",
+      "at": "2026-11-01T19:08:52.782Z"
+    },
+    {
+      "name": "no key file or credential value in the acceptance outputs",
+      "ok": true,
+      "evidence": "no match; 64 files under acceptance/results, acceptance/RESULTS.md, 18 --extra paths",
+      "at": "2026-11-01T19:08:52.820Z"
+    },
+    {
+      "name": "the Anthropic auth token variable name appears nowhere in the store",
+      "ok": true,
+      "evidence": "no match",
+      "at": "2026-11-01T19:08:52.824Z"
+    },
+    {
+      "name": "the Anthropic auth token variable name appears nowhere in the logs",
+      "ok": true,
+      "evidence": "no match",
+      "at": "2026-11-01T19:08:52.827Z"
+    },
+    {
+      "name": "the Anthropic auth token variable name appears nowhere in the evidence",
+      "ok": true,
+      "evidence": "no match",
+      "at": "2026-11-01T19:08:52.832Z"
+    },
+    {
+      "name": "the Anthropic auth token variable name appears nowhere in the jv config",
+      "ok": true,
+      "evidence": "no match",
+      "at": "2026-11-01T19:08:52.835Z"
+    },
+    {
+      "name": "the Anthropic auth token variable name appears in the repository only in the code that sets it",
+      "ok": true,
+      "evidence": "24 allowed files: .apm/skills/jevellan-router/scripts/jv/test/providers.test.ts, .apm/skills/jevellan-router/scripts/jv/test/land.test.ts, .apm/skills/jevellan-router/scripts/jv/test/env.test.ts, .apm/skills/jevellan-router/scripts/jv/src/env.ts, .apm/skills/jevellan-router/scripts/jv/src/providers.ts, README.md, plus their compiled copies in dist/ and dist-test/, the agent SDK in node_modules/@anthropic-ai and the CodeGraph index",
+      "at": "2026-11-01T19:08:53.097Z"
+    },
+    {
+      "name": "the Anthropic auth token variable name appears nowhere in the acceptance outputs",
+      "ok": true,
+      "evidence": "no match",
+      "at": "2026-11-01T19:08:53.103Z"
+    }
+  ],
+  "elapsed": {
+    "sandboxMainFirstParent": "12 commits since 61fc71a: 302f478 Add a Playwright automation that creates, lists and deletes a test customer / a07ffd7 Document the customers page form and delete buttons in the README / 57f2813 Cover creating, deleting and the empty-field error in browser specs / a57d0a8 Create and delete customers from the customers page / fe42d4e Describe what the web html module provides / 89354e1 Describe what the customers module stores / ff57fd0 Describe what the invoices module computes / e0f244b Document the address npm start serves on / ceec900 Merge branch 'main' into jv/empty-state-on-the-customers-page-afefxt / dbbb940 Cover the customers page states in browser tests / dc1ac1f Show an empty state on the customers page / 694c301 Test the HTML escape helper in its own module",
+    "searched": "store 3 files, logs 69 files, evidence 148 files, jv config 60 files, repository 9528 files, acceptance outputs 64 files",
+    "storeFiles": "store.sqlite, store.sqlite-wal, store.sqlite-shm",
+    "evidenceFolders": "8",
+    "grepMs": 2091,
+    "totalMs": 2980
+  },
+  "deviations": [
+    "The repository necessarily names the Anthropic auth token variable: src/providers.ts sets it for endpoint providers, src/env.ts documents it, three test files assert on it, README.md documents it, and the build, the agent SDK in node_modules and the CodeGraph index repeat it. Those files are allowed by exact path; any other file in the repository, and any match in the store, logs, evidence, jv config or acceptance outputs, fails the journey."
+  ],
+  "notes": "jv status --json still lists 2 stopped task(s) (T3XKZ7A, TQ9JMCZ) among the tasks not done; they run nothing (docs/findings.md, 2026-11-01 J4/J5/J16 section)."
+}

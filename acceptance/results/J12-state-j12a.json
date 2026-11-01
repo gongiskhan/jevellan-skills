@@ -1,0 +1,16 @@
+{
+  "real": "/home/ggomes/.jv/skill-sets/0.1.0-89d973f6-20261101T174541Z/jevellan-router/SKILL.md",
+  "editedAt": "2026-11-01T18:14:12.824Z",
+  "changed": [
+    "claude-opus-5-5",
+    "claude-fable-5-1",
+    "claude-sonnet-5-5",
+    "claude-haiku-5-5",
+    "gpt-6-astra",
+    "glm-5.3",
+    "deepseek-chat",
+    "kimi-k2-turbo-preview",
+    "qwen3:8b"
+  ],
+  "task": "TVPS7NJ"
+}

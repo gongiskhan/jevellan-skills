@@ -1,0 +1,95 @@
+{
+  "id": "J12",
+  "title": "Codex",
+  "status": "pass",
+  "startedAt": "2026-11-01T18:14:12.693Z",
+  "endedAt": "2026-11-01T18:14:44.778Z",
+  "tag": "j12a",
+  "checks": [
+    {
+      "name": "gate: jv status shows no running work",
+      "ok": true,
+      "evidence": "jv status --json: 0 tasks in flight, 0 live step runs; not-done tasks T3XKZ7A stopped, TQ9JMCZ stopped; waited 126 ms",
+      "at": "2026-11-01T18:14:12.822Z"
+    },
+    {
+      "name": "the installed policy equals the repository copy before the journey",
+      "ok": true,
+      "evidence": "/home/ggomes/.jv/skills/jevellan-router/SKILL.md -> /home/ggomes/.jv/skill-sets/0.1.0-89d973f6-20261101T174541Z/jevellan-router/SKILL.md; sha256 6460203b9eb8142e..., repository 6460203b9eb8142e...",
+      "at": "2026-11-01T18:14:12.823Z"
+    },
+    {
+      "name": "backup written",
+      "ok": true,
+      "evidence": "/tmp/claude-1001/-home-ggomes-dev-jevellan-skills/286eb47c-c709-4c16-8549-52f13f67d750/scratchpad/router-SKILL.md.j12, 7611 bytes",
+      "at": "2026-11-01T18:14:12.824Z"
+    },
+    {
+      "name": "the model descriptions were edited (GPT for investigation, the others not)",
+      "ok": true,
+      "evidence": "9 lines: claude-opus-5-5, claude-fable-5-1, claude-sonnet-5-5, claude-haiku-5-5, gpt-6-astra, glm-5.3, deepseek-chat, kimi-k2-turbo-preview, qwen3:8b; mode 664; GPT line \"gpt-6-astra: The model for investigation: reading code and answering questions about it with file and line references. Every investigate step goes to GPT through Codex.\"",
+      "at": "2026-11-01T18:14:12.824Z"
+    },
+    {
+      "name": "jv task create exits 0",
+      "ok": true,
+      "evidence": "TVPS7NJ; gpt-6-astra medium on codex (codex)",
+      "at": "2026-11-01T18:14:13.929Z"
+    },
+    {
+      "name": "the task finishes",
+      "ok": true,
+      "evidence": "done: step investigate done",
+      "at": "2026-11-01T18:14:44.772Z"
+    },
+    {
+      "name": "Jev placed the step on gpt-6-astra via codex (a Jev decision, not an override)",
+      "ok": true,
+      "evidence": "D0JDV1R by jev-1.14.0: gpt-6-astra medium on codex (codex); model answer {\"source\":\"jev\",\"option\":\"GPT via codex (codex)\",\"probabilities\":{\"GPT via codex (codex)\":1,\"Opus via claude-second (claude-sdk)\":0,\"Fable via claude-second (claude-sdk)\":0,\"Sonnet via claude-second (claude-sdk)\":0,\"Haiku via claude-second (claude-sdk)\":0}}",
+      "at": "2026-11-01T18:14:44.773Z"
+    },
+    {
+      "name": "the placement used the edited policy (its skill_hash differs from the placement before it)",
+      "ok": true,
+      "evidence": "7c3ebb4f6f1acd15... vs 482b01793ddb5b50...",
+      "at": "2026-11-01T18:14:44.776Z"
+    },
+    {
+      "name": "one run, on the codex runtime with gpt-6-astra and a thread id",
+      "ok": true,
+      "evidence": "R9RBTNP codex codex gpt-6-astra medium done (turn ended: report done); thread 01a19851-bc88-7152-947a-a1508ce40042",
+      "at": "2026-11-01T18:14:44.776Z"
+    },
+    {
+      "name": "the events show the jv report tool call (jv-report-mcp)",
+      "ok": true,
+      "evidence": "jv.jv_report: {\"status\":\"done\",\"changedFiles\":[],\"summary\":\"The customers page has no search implementation, so there are no case-sensitivity, searched-field, or partial-match rules; it renders every supplied custo",
+      "at": "2026-11-01T18:14:44.776Z"
+    },
+    {
+      "name": "the report row exists (and a report event)",
+      "ok": true,
+      "evidence": "EXR5JXV done: The customers page has no search implementation, so there are no case-sensitivity, searched-field, or partial-match rules; it renders every supplied customer's name and VAT, with no search control (src/web/customers.ts:3; src/web/html.ts:3)",
+      "at": "2026-11-01T18:14:44.777Z"
+    },
+    {
+      "name": "after the restore: the policy sha256 equals the repository copy",
+      "ok": true,
+      "evidence": "/home/ggomes/.jv/skill-sets/0.1.0-89d973f6-20261101T174541Z/jevellan-router/SKILL.md: 6460203b9eb8142e4256433aa60dc4cc3bf5fab3663c42612fae665bcb2113e2; /home/ggomes/dev/jevellan-skills/.apm/skills/jevellan-router/SKILL.md: 6460203b9eb8142e4256433aa60dc4cc3bf5fab3663c42612fae665bcb2113e2",
+      "at": "2026-11-01T18:14:44.778Z"
+    },
+    {
+      "name": "after the restore: the installed link still resolves to the restored file",
+      "ok": true,
+      "evidence": "/home/ggomes/.jv/skills/jevellan-router/SKILL.md -> /home/ggomes/.jv/skill-sets/0.1.0-89d973f6-20261101T174541Z/jevellan-router/SKILL.md",
+      "at": "2026-11-01T18:14:44.778Z"
+    }
+  ],
+  "elapsed": {
+    "taskMs": 31947,
+    "runMs": 29695,
+    "totalMs": 32085
+  },
+  "deviations": [],
+  "notes": ""
+}

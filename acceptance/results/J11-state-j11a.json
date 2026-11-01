@@ -1,0 +1,32 @@
+{
+  "undoTask": "T3JBC7M",
+  "undo": {
+    "mode": "undo",
+    "placement": {
+      "runtime": "claude-sdk",
+      "provider": "claude-second",
+      "model": "claude-fable-5-1",
+      "effort": "high"
+    },
+    "overridden": "DMJ84FK",
+    "decision": "DPW7KRW",
+    "stopped": "R7FT1F6",
+    "session": "RYE0KHC",
+    "before": "R7FT1F6"
+  },
+  "keepTask": "TJF66H7",
+  "keep": {
+    "mode": "keep",
+    "placement": {
+      "runtime": "claude-sdk",
+      "provider": "claude-second",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    "overridden": "D9EDQBW",
+    "run": "RD4V4CK",
+    "stateAfter": "running",
+    "runsBefore": 1,
+    "runsAfter": 1
+  }
+}

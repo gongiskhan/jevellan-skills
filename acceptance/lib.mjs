@@ -34,6 +34,7 @@ export function runtimeModule(name) {
 export function jv(args, options = {}) {
   const r = spawnSync(JV, args, {
     encoding: 'utf8',
+    ...(options.cwd ? { cwd: options.cwd } : {}),
     env: { ...process.env, ...(options.env ?? {}) },
     timeout: options.timeoutMs ?? 120_000,
   });
@@ -68,9 +69,14 @@ export function checkoutState(repo) {
 let failures = 0;
 const results = [];
 
+/** The assertions recorded so far, in order: {name, ok, detail, at}. */
+export function checkResults() {
+  return results.map((r) => ({ ...r }));
+}
+
 /** Records one assertion and prints PASS or FAIL with the detail. */
 export function check(name, ok, detail = '') {
-  results.push({ name, ok: !!ok, detail });
+  results.push({ name, ok: !!ok, detail, at: new Date().toISOString() });
   if (!ok) failures++;
   process.stdout.write(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? `: ${detail}` : ''}\n`);
   return !!ok;

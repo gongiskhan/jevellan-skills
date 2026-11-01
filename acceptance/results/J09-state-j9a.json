@@ -1,0 +1,11 @@
+{
+  "told": {
+    "at": "2026-11-01T18:11:20.858Z",
+    "reply": "Got it. Until you tell me J9, J10 and J12 are over, I won't resume, answer, override or stop any task. When a [jv] line comes in, I'll just tell you in one line what it says. That hold is in the notes too, so it survives a restart. Nothing is open right now, so for the moment there's nothing for me to keep my hands off."
+  },
+  "task": "TN6DEFT",
+  "refused": "Jev: no key configured (task TN6DEFT is queued; jv task resume TN6DEFT starts it once Jev answers)",
+  "coordOffset": 571457,
+  "restoredAt": "2026-11-01T18:12:01.013Z",
+  "resumed": true
+}

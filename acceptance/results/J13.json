@@ -1,0 +1,151 @@
+{
+  "id": "J13",
+  "title": "llm",
+  "status": "pass",
+  "startedAt": "2026-11-01T18:02:31.592Z",
+  "endedAt": "2026-11-01T18:02:43.542Z",
+  "tag": "j13a",
+  "checks": [
+    {
+      "name": "first: jv task create --kind single --duty answer exits 0",
+      "ok": true,
+      "evidence": "TSA2V0W",
+      "at": "2026-11-01T18:02:32.194Z"
+    },
+    {
+      "name": "first: an answer task has no worktree",
+      "ok": true,
+      "evidence": "none",
+      "at": "2026-11-01T18:02:32.194Z"
+    },
+    {
+      "name": "first: the task finishes",
+      "ok": true,
+      "evidence": "done: step answer done",
+      "at": "2026-11-01T18:02:37.438Z"
+    },
+    {
+      "name": "first: one run",
+      "ok": true,
+      "evidence": "R9W7PRH llm claude-second claude-haiku-5-5 low done (turn ended: report done)",
+      "at": "2026-11-01T18:02:37.439Z"
+    },
+    {
+      "name": "first: the run is on the llm runtime",
+      "ok": true,
+      "evidence": "R9W7PRH llm claude-second claude-haiku-5-5 low done (turn ended: report done)",
+      "at": "2026-11-01T18:02:37.440Z"
+    },
+    {
+      "name": "first: one turn (one usage event, no tool calls)",
+      "ok": true,
+      "evidence": "1 usage, 0 tool calls; 1179 in, 635 out, $0.001316",
+      "at": "2026-11-01T18:02:37.440Z"
+    },
+    {
+      "name": "first: the report was parsed from the reply, not synthesized",
+      "ok": true,
+      "evidence": "done; limitations Answered from general knowledge only; I did not read the repository. To say how this project uses 409, I would need to look at the invoices, customers, or web code paths that return it.; HTTP 409 Conflict means the server understood the request but couldn't apply it because it conflicts with the current state of the target resource. The usual causes are a concurrent or out-of-order change, such as an edit based on a stale v",
+      "at": "2026-11-01T18:02:37.440Z"
+    },
+    {
+      "name": "first: Jev chose the placement (a Jev decision row with probabilities)",
+      "ok": true,
+      "evidence": "DW80GPD by jev-1.14.0: chosen {\"source\":\"jev\",\"duty\":\"answer\",\"visible\":false,\"runtime\":\"llm\",\"provider\":\"claude-second\",\"model\":\"claude-haiku-5-5\",\"label\":\"Haiku\",\"effort\":\"low\",\"effortRequested\":\"low\",\"effortAfterRules\":\"low\",\"choices\":{\"model\":{\"source\":\"jev\",\"option\":\"Haiku via claude-second (llm)\",\"probabilities\":{\"Opus via claude-second (llm)\":0,\"Fable via claude-second (llm)\":0,\"Sonnet via claude-second (llm)\":0.1,\"Haiku via claude-second (llm)\":0.9}},\"effort\":{\"source\":\"jev\",\"option\":\"low\",\"probabilities\":{\"low\":1,\"medium\":0,\"high\":0,\"xhigh\":0,\"max\":0}},\"provider\":{\"source\":\"jev\",\"option\":\"claude-second\",\"probabilities\":{\"claude-second\":0.94,\"claude-main\":0.06}}},\"candidates\":[{\"name\":\"claude-second\",\"kind\":\"claude-subscription\",\"eligible\":true,\"reason\":\"eligible\",\"ceilingPct\":90,\"weeklyPct\":44,\"fiveHourPct\":null},{\"name\":\"claude-main\",\"kind\":\"claude-subscription\",\"eligible\":true,\"reason\":\"eligible\",\"ceilingPct\":90,\"weeklyPct\":65,\"fiveHourPct\":null},{\"name\":\"codex\",\"kind\":\"codex-subscription\",\"eligible\":false,\"reason\":\"unsupported\",\"ceilingPct\":90,\"weeklyPct\":1,\"fiveHourPct\":null},{\"name\":\"ollama\",\"kind\":\"openai-compatible\",\"eligible\":false,\"reason\":\"needs-login\",\"ceilingPct\":90,\"weeklyPct\":null,\"fiveHourPct\":null},{\"name\":\"deepseek\",\"kind\":\"openai-compatible\",\"eligible\":false,\"reason\":\"no-key\",\"ceilingPct\":90,\"weeklyPct\":null,\"fiveHourPct\":null},{\"name\":\"glm\",\"kind\":\"claude-endpoint\",\"eligible\":false,\"reason\":\"no-key\",\"ceilingPct\":90,\"weeklyPct\":null,\"fiveHourPct\":null},{\"name\":\"kimi\",\"kind\":\"openai-compatible\",\"eligible\":false,\"reason\":\"no-key\",\"ceilingPct\":90,\"weeklyPct\":null,\"fiveHourPct\":null}],\"rules\":{\"applied\":[],\"ignored\":[],\"minimum\":\"low\",\"maximum\":\"max\",\"reason\":\"\"}}; outcome {\"status\":\"done\",\"attempts\":1,\"durationMs\":5126,\"costUsd\":0.001316}",
+      "at": "2026-11-01T18:02:37.441Z"
+    },
+    {
+      "name": "haiku: jv task create exits 0",
+      "ok": true,
+      "evidence": "TAZH1K3; first run RWFGQZK claude-haiku-5-5",
+      "at": "2026-11-01T18:02:38.024Z"
+    },
+    {
+      "name": "haiku: the task finishes",
+      "ok": true,
+      "evidence": "done: step answer done",
+      "at": "2026-11-01T18:02:43.539Z"
+    },
+    {
+      "name": "haiku: the owner placement ran claude-haiku-5-5 on claude-main",
+      "ok": true,
+      "evidence": "R1K1Q56 llm claude-main claude-haiku-5-5 low done (turn ended: report done)",
+      "at": "2026-11-01T18:02:43.540Z"
+    },
+    {
+      "name": "haiku: the run is on the llm runtime",
+      "ok": true,
+      "evidence": "R1K1Q56 llm claude-main claude-haiku-5-5 low done (turn ended: report done)",
+      "at": "2026-11-01T18:02:43.540Z"
+    },
+    {
+      "name": "haiku: one turn (one usage event, no tool calls)",
+      "ok": true,
+      "evidence": "1 usage, 0 tool calls; 1179 in, 525 out, $0.001228",
+      "at": "2026-11-01T18:02:43.540Z"
+    },
+    {
+      "name": "haiku: the report was parsed from the reply, not synthesized",
+      "ok": true,
+      "evidence": "done; limitations This is general HTTP behaviour (RFC 9110). I did not check how this project's code uses 409 and cannot see the repository in this step.; HTTP 409 Conflict means the server understood the request but can't complete it because it conflicts with the current state of the target resource. The usual cause is that the request would create a duplicate, or change a resource someone e",
+      "at": "2026-11-01T18:02:43.541Z"
+    },
+    {
+      "name": "haiku: the placement is an owner decision row",
+      "ok": true,
+      "evidence": "DV3Y7Q1 none {\"source\":\"owner\",\"duty\":\"answer\",\"visible\":false,\"runtime\":\"llm\",\"provider\":\"claude-main\",\"model\":\"claude-haiku-5-5\",\"effort\":\"low\",\"label\":\"Haiku\",\"overrides\":\"DHWE517\",\"providerReason\":\"eligible\"}",
+      "at": "2026-11-01T18:02:43.541Z"
+    },
+    {
+      "name": "glm: no key file, so glm is absent from the placement menu",
+      "ok": true,
+      "evidence": "menu providers: claude-second, claude-main",
+      "at": "2026-11-01T18:02:43.542Z"
+    }
+  ],
+  "elapsed": {
+    "totalMs": 11950
+  },
+  "deviations": [],
+  "notes": "Jev chose claude-haiku-5-5 low on claude-second (llm), not claude-main Haiku; a second answer task was overridden onto claude-haiku-5-5 on claude-main (--undo)\nglm: skipped: no key (~/.jv/secrets/glm.key is missing)",
+  "tables": [
+    {
+      "title": "llm runs",
+      "columns": [
+        "part",
+        "run",
+        "provider",
+        "model",
+        "effort",
+        "runtime",
+        "usage events",
+        "report",
+        "summary"
+      ],
+      "rows": [
+        [
+          "first",
+          "R9W7PRH",
+          "claude-second",
+          "claude-haiku-5-5",
+          "low",
+          "llm",
+          "1",
+          "done",
+          "HTTP 409 Conflict means the server understood the request but couldn't apply it because it conflicts with the current state of the target resource. The usual ca"
+        ],
+        [
+          "haiku",
+          "R1K1Q56",
+          "claude-main",
+          "claude-haiku-5-5",
+          "low",
+          "llm",
+          "1",
+          "done",
+          "HTTP 409 Conflict means the server understood the request but can't complete it because it conflicts with the current state of the target resource. The usual ca"
+        ]
+      ]
+    }
+  ]
+}

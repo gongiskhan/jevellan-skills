@@ -1,0 +1,140 @@
+{
+  "id": "J15",
+  "title": "Evals",
+  "status": "pass",
+  "startedAt": "2026-11-01T19:08:22.561Z",
+  "endedAt": "2026-11-01T19:08:27.891Z",
+  "tag": "j15a",
+  "checks": [
+    {
+      "name": "jv evals route --since 2026-11-01 exits 0 and writes the package's jevellan-router/evals/cases.json",
+      "ok": true,
+      "evidence": "exit 0; file .apm/skills/jevellan-router/evals/cases.json",
+      "at": "2026-11-01T19:08:22.729Z"
+    },
+    {
+      "name": "jv evals route exports at least 12 cases with at least 1 override",
+      "ok": true,
+      "evidence": "53 exported: override 10 (held-out 3), outcome 43 (held-out 8); skipped {\"owner\":8,\"nothing-asked\":0,\"pending\":4,\"stopped\":1,\"unreadable\":0}",
+      "at": "2026-11-01T19:08:22.729Z"
+    },
+    {
+      "name": "the jevellan-router cases file keeps every hand case and holds every exported decision once",
+      "ok": true,
+      "evidence": "10 hand cases before, 10 after; 63 cases in the file (63 labelled); 53 distinct decisions",
+      "at": "2026-11-01T19:08:22.734Z"
+    },
+    {
+      "name": "jevellan-router evals/run.mjs replays the cases through Jev and prints the agreement",
+      "ok": true,
+      "evidence": "exit 0; Held-out agreement: 94% (threshold 60%): pass; all questions 118/130 (91%) 32/34 (94%) 150/164 (91%)",
+      "at": "2026-11-01T19:08:26.902Z"
+    },
+    {
+      "name": "jevellan-router evals/RESULTS.md is rewritten by this run with the skill hash and the date",
+      "ok": true,
+      "evidence": "- Date: 2026-11-01T19:08:26.888Z; - Skill hash: `482b01793ddb5b50cd9cabffe9fc7732da68c54849ed90d579001a057165a1bf`; - Cases: 63 cases (63 scored, 0 unlabelled, 0 stale), split all from `cases.json`",
+      "at": "2026-11-01T19:08:26.903Z"
+    },
+    {
+      "name": "jevellan-router/evals/cases.json holds no machine path and no owner name or e-mail",
+      "ok": true,
+      "evidence": "none of 16 strings (paths, names, e-mails; ignoring case) in 624243 bytes",
+      "at": "2026-11-01T19:08:26.908Z"
+    },
+    {
+      "name": "jevellan-router/evals/RESULTS.md holds no machine path and no owner name or e-mail",
+      "ok": true,
+      "evidence": "none of 16 strings (paths, names, e-mails; ignoring case) in 2642 bytes",
+      "at": "2026-11-01T19:08:26.908Z"
+    },
+    {
+      "name": "jv evals landing --since 2026-11-01 exits 0 and writes the package's jevellan-landing/evals/cases.json",
+      "ok": true,
+      "evidence": "exit 0; file .apm/skills/jevellan-landing/evals/cases.json",
+      "at": "2026-11-01T19:08:27.051Z"
+    },
+    {
+      "name": "jv evals landing exports at least 1 case",
+      "ok": true,
+      "evidence": "5 exported: outcome 5 (held-out 0); skipped {\"owner\":0,\"nothing-asked\":0,\"pending\":2,\"stopped\":7,\"unreadable\":0}",
+      "at": "2026-11-01T19:08:27.052Z"
+    },
+    {
+      "name": "the jevellan-landing cases file keeps every hand case and holds every exported decision once",
+      "ok": true,
+      "evidence": "11 hand cases before, 11 after; 16 cases in the file (16 labelled); 5 distinct decisions",
+      "at": "2026-11-01T19:08:27.052Z"
+    },
+    {
+      "name": "jevellan-landing evals/run.mjs replays the cases through Jev and prints the agreement",
+      "ok": true,
+      "evidence": "exit 0; Held-out agreement: 100% (threshold 60%): pass; all questions 14/14 (100%) 2/2 (100%) 16/16 (100%)",
+      "at": "2026-11-01T19:08:27.889Z"
+    },
+    {
+      "name": "jevellan-landing evals/RESULTS.md is rewritten by this run with the skill hash and the date",
+      "ok": true,
+      "evidence": "- Date: 2026-11-01T19:08:27.875Z; - Skill hash: `44c26cd3ccbdbeca908349690b7aeac918ee475ec796ad938e73249c0abe3b73`; - Cases: 16 cases (16 scored, 0 unlabelled, 0 stale), split all from `cases.json`",
+      "at": "2026-11-01T19:08:27.889Z"
+    },
+    {
+      "name": "jevellan-landing/evals/cases.json holds no machine path and no owner name or e-mail",
+      "ok": true,
+      "evidence": "none of 16 strings (paths, names, e-mails; ignoring case) in 95209 bytes",
+      "at": "2026-11-01T19:08:27.890Z"
+    },
+    {
+      "name": "jevellan-landing/evals/RESULTS.md holds no machine path and no owner name or e-mail",
+      "ok": true,
+      "evidence": "none of 16 strings (paths, names, e-mails; ignoring case) in 634 bytes",
+      "at": "2026-11-01T19:08:27.890Z"
+    }
+  ],
+  "elapsed": {
+    "export-routeMs": 155,
+    "run-routeMs": 4168,
+    "export-landingMs": 142,
+    "run-landingMs": 837,
+    "totalMs": 5330
+  },
+  "deviations": [],
+  "notes": "backups of both cases.json and both evals/RESULTS.md from before this run were copied to a temporary folder (JV_ACCEPT_BACKUP_DIR, default the system temporary folder; not recorded here because it is a machine path).\nthe J12 decision (GPT for investigation) was made under a temporarily edited router policy (J12 restored it); it is exported as an outcome case and the replay uses the restored policy, so a disagreement on it is expected and is not a jv defect.\nrun.mjs exits 1 by design when held-out agreement is below evals/threshold.json; the journey asserts that the run happened (exit 0 or 1, never 2) and records the agreement.",
+  "tables": [
+    {
+      "title": "Eval runs",
+      "columns": [
+        "set",
+        "exported",
+        "by source",
+        "file total",
+        "run.mjs exit",
+        "held-out agreement",
+        "all questions",
+        "disagreements"
+      ],
+      "rows": [
+        [
+          "route",
+          "53",
+          "override 10 (held-out 3), outcome 43 (held-out 8)",
+          "63",
+          "0",
+          "Held-out agreement: 94% (threshold 60%): pass",
+          "all questions  118/130 (91%)  32/34 (94%)   150/164 (91%)",
+          "14"
+        ],
+        [
+          "landing",
+          "5",
+          "outcome 5 (held-out 0)",
+          "16",
+          "0",
+          "Held-out agreement: 100% (threshold 60%): pass",
+          "all questions  14/14 (100%)  2/2 (100%)  16/16 (100%)",
+          "0"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "id": "J11",
+  "title": "Override",
+  "status": "pass",
+  "startedAt": "2026-11-01T18:01:14.062Z",
+  "endedAt": "2026-11-01T18:02:23.530Z",
+  "tag": "j11a",
+  "checks": [
+    {
+      "name": "undo: jv task create (single implement) exits 0",
+      "ok": true,
+      "evidence": "T3JBC7M; R7FT1F6: claude-sonnet-5-5 medium on claude-second (claude-sdk)",
+      "at": "2026-11-01T18:01:15.423Z"
+    },
+    {
+      "name": "undo: the step's run is running (tool calls made, no report) before the override",
+      "ok": true,
+      "evidence": "R7FT1F6 claude-sdk claude-second claude-sonnet-5-5 medium running (claude-sdk turn running); 1 tool calls",
+      "at": "2026-11-01T18:01:19.951Z"
+    },
+    {
+      "name": "undo: jv task override --model claude-fable-5-1 --effort high --undo exits 0",
+      "ok": true,
+      "evidence": "stopped R7FT1F6; new run RYE0KHC; claude-fable-5-1 high on claude-second (claude-sdk); decision DPW7KRW, overridden DMJ84FK",
+      "at": "2026-11-01T18:01:20.730Z"
+    },
+    {
+      "name": "undo: the running run was stopped \"overridden by the owner\"",
+      "ok": true,
+      "evidence": "R7FT1F6 claude-sdk claude-second claude-sonnet-5-5 medium stopped (overridden by the owner: claude-fable-5-1 high)",
+      "at": "2026-11-01T18:01:20.731Z"
+    },
+    {
+      "name": "undo: the step restarted on Fable high in a new run",
+      "ok": true,
+      "evidence": "RYE0KHC claude-sdk claude-second claude-fable-5-1 high starting (launching jv run)",
+      "at": "2026-11-01T18:01:20.732Z"
+    },
+    {
+      "name": "undo: Jev's decision row records the override (override_json, override_mode undo)",
+      "ok": true,
+      "evidence": "DMJ84FK jev_model jev-1.14.0: override_mode undo, override_json {\"source\":\"owner\",\"runtime\":\"claude-sdk\",\"provider\":\"claude-second\",\"model\":\"claude-fable-5-1\",\"effort\":\"high\",\"effortRequested\":\"high\",\"at\":\"2026-11-01T18:01:20.077Z\"}",
+      "at": "2026-11-01T18:01:20.732Z"
+    },
+    {
+      "name": "undo: the new placement is an owner decision row (source owner, no Jev call)",
+      "ok": true,
+      "evidence": "DPW7KRW jev_model none; chosen {\"source\":\"owner\",\"duty\":\"implement\",\"visible\":false,\"runtime\":\"claude-sdk\",\"provider\":\"claude-second\",\"model\":\"claude-fable-5-1\",\"effort\":\"high\",\"label\":\"Fable\",\"effortRequested\":\"high\",\"overrides\":\"DMJ84FK\",\"providerReason\":\"eligible\"}",
+      "at": "2026-11-01T18:01:20.733Z"
+    },
+    {
+      "name": "undo: the task finishes",
+      "ok": true,
+      "evidence": "done: landed 89354e13c027 on main",
+      "at": "2026-11-01T18:02:06.978Z"
+    },
+    {
+      "name": "undo: the step finished on the owner placement",
+      "ok": true,
+      "evidence": "done: report done (RYE0KHC)",
+      "at": "2026-11-01T18:02:06.980Z"
+    },
+    {
+      "name": "keep: jv task create (single implement) exits 0",
+      "ok": true,
+      "evidence": "TJF66H7; RD4V4CK: claude-sonnet-5-5 medium on claude-second (claude-sdk)",
+      "at": "2026-11-01T18:02:08.471Z"
+    },
+    {
+      "name": "keep: the step's run is running (tool calls made, no report) before the override",
+      "ok": true,
+      "evidence": "RD4V4CK claude-sdk claude-second claude-sonnet-5-5 medium running (claude-sdk turn running); 1 tool calls",
+      "at": "2026-11-01T18:02:12.995Z"
+    },
+    {
+      "name": "keep: jv task override --model claude-sonnet-5-5 --effort low --keep exits 0",
+      "ok": true,
+      "evidence": "mode keep; overridden D9EDQBW; stopped nothing; session none",
+      "at": "2026-11-01T18:02:13.161Z"
+    },
+    {
+      "name": "keep: nothing was stopped and no new run started",
+      "ok": true,
+      "evidence": "run RD4V4CK running right after; runs 1 -> 1",
+      "at": "2026-11-01T18:02:13.162Z"
+    },
+    {
+      "name": "keep: the decision row records the override (override_mode keep)",
+      "ok": true,
+      "evidence": "D9EDQBW (run RD4V4CK): override_mode keep, override_json {\"source\":\"owner\",\"runtime\":\"claude-sdk\",\"provider\":\"claude-second\",\"model\":\"claude-sonnet-5-5\",\"effort\":\"low\",\"effortRequested\":\"low\",\"at\":\"2026-11-01T18:02:13.131Z\"}",
+      "at": "2026-11-01T18:02:13.162Z"
+    },
+    {
+      "name": "keep: the task finishes",
+      "ok": true,
+      "evidence": "done: landed fe42d4e7b4be on main",
+      "at": "2026-11-01T18:02:23.527Z"
+    },
+    {
+      "name": "keep: the same run carried on and finished the step",
+      "ok": true,
+      "evidence": "RD4V4CK claude-sdk claude-second claude-sonnet-5-5 medium done (turn ended: report done); step runs RD4V4CK",
+      "at": "2026-11-01T18:02:23.530Z"
+    }
+  ],
+  "elapsed": {
+    "undoOverrideMs": 779,
+    "totalMs": 69468
+  },
+  "deviations": [
+    "single implement tasks land since D-078 (their step commits); J11's tasks landed on sandbox main"
+  ],
+  "notes": "",
+  "tables": [
+    {
+      "title": "Placement decisions of the undo task's step (T3JBC7M)",
+      "columns": [
+        "decision",
+        "jev_model",
+        "chosen",
+        "override_mode",
+        "override_json"
+      ],
+      "rows": [
+        [
+          "DMJ84FK",
+          "jev-1.14.0",
+          "claude-sonnet-5-5 medium on claude-second (jev)",
+          "undo",
+          "{\"source\":\"owner\",\"runtime\":\"claude-sdk\",\"provider\":\"claude-second\",\"model\":\"claude-fable-5-1\",\"effort\":\"high\",\"effortRequested\":\"high\",\"at\":\"2026-11-01T18:01:20.077Z\"}"
+        ],
+        [
+          "DPW7KRW",
+          "none",
+          "claude-fable-5-1 high on claude-second (owner)",
+          "",
+          ""
+        ]
+      ]
+    }
+  ]
+}

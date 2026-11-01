@@ -1,0 +1,8 @@
+{
+  "task": "T0FJGN2",
+  "restarted": "RFGASJC",
+  "old": "RVSFMNP",
+  "restartedAt": "2026-11-01T18:00:08.004Z",
+  "firstReply": "I've picked up from the handoff, and the store matches it. Nothing is running. Six tasks landed today, the last one TJPY9HT (comment at the top of src/invoices/index.ts, ff57fd0), and nothing failed.\n\nOne thing is waiting on you. T0FJGN2 found that \"Customers\" comes from src/web/server.ts:11, and html.ts puts it in both the browser tab and the page heading. Switching to \"Clients\" only in the title would leave the nav link and the \"No customers yet.\" empty state still saying Customers. If you pick Clients, I'd make it one task that renames all four places so the page is consistent.\n\nTQ9JMCZ still shows in status as stopped. That's the empty-state run you discarded, and I'm leaving it alone.\n\n1. T0FJGN2 \"Customers page title: Clients or Customers?\": Clients (rename title, heading, nav link and empty state) or Customers (keep it as it is).",
+  "answered": "T0FJGN2: Customers. Keep the page title as it is."
+}

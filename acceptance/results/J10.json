@@ -1,0 +1,106 @@
+{
+  "id": "J10",
+  "title": "Ceiling",
+  "status": "pass",
+  "startedAt": "2026-11-01T18:12:58.060Z",
+  "endedAt": "2026-11-01T18:13:09.703Z",
+  "tag": "j10a",
+  "checks": [
+    {
+      "name": "gate: jv status shows no running work",
+      "ok": true,
+      "evidence": "jv status --json: 0 tasks in flight, 0 live step runs; not-done tasks T3XKZ7A stopped, TQ9JMCZ stopped; waited 129 ms",
+      "at": "2026-11-01T18:12:58.191Z"
+    },
+    {
+      "name": "claude-main has a weekly usage row from the last hour",
+      "ok": true,
+      "evidence": "stream 2026-11-01T18:02:39.920Z: week 66%, five hours unknown%, week resets 2026-11-02T05:00:00.000Z",
+      "at": "2026-11-01T18:12:58.192Z"
+    },
+    {
+      "name": "the new ceiling is below the current weekly usage",
+      "ok": true,
+      "evidence": "weekly 66% -> ceilingPct 50",
+      "at": "2026-11-01T18:12:58.192Z"
+    },
+    {
+      "name": "providers.json has claude-main",
+      "ok": true,
+      "evidence": "ceilingPct 90",
+      "at": "2026-11-01T18:12:58.192Z"
+    },
+    {
+      "name": "backup written byte for byte, mode 600",
+      "ok": true,
+      "evidence": "/tmp/claude-1001/-home-ggomes-dev-jevellan-skills/286eb47c-c709-4c16-8549-52f13f67d750/scratchpad/providers.json.j10, 3258 bytes",
+      "at": "2026-11-01T18:12:58.196Z"
+    },
+    {
+      "name": "jv task create exits 0",
+      "ok": true,
+      "evidence": "TTS2GSW; claude-opus-5-5 low on claude-second (claude-sdk)",
+      "at": "2026-11-01T18:12:59.317Z"
+    },
+    {
+      "name": "the task finishes (before the restore)",
+      "ok": true,
+      "evidence": "done: step investigate done",
+      "at": "2026-11-01T18:13:09.696Z"
+    },
+    {
+      "name": "a Jev placement decision exists for the step",
+      "ok": true,
+      "evidence": "DPCSFD8 by jev-1.14.0 at 2026-11-01T18:12:59.294Z; 1 placement(s)",
+      "at": "2026-11-01T18:13:09.698Z"
+    },
+    {
+      "name": "state_json menu.providers has no claude-main",
+      "ok": true,
+      "evidence": "menu providers: codex, claude-second",
+      "at": "2026-11-01T18:13:09.698Z"
+    },
+    {
+      "name": "state_json menu.models has no claude-main model",
+      "ok": true,
+      "evidence": "menu models: GPT/codex/codex, Opus/claude-second/claude-sdk, Fable/claude-second/claude-sdk, Sonnet/claude-second/claude-sdk, Haiku/claude-second/claude-sdk",
+      "at": "2026-11-01T18:13:09.698Z"
+    },
+    {
+      "name": "the decision candidates list claude-main as excluded by usage-ceiling at the lowered ceiling",
+      "ok": true,
+      "evidence": "{\"name\":\"claude-main\",\"kind\":\"claude-subscription\",\"eligible\":false,\"reason\":\"usage-ceiling\",\"ceilingPct\":50,\"weeklyPct\":66,\"fiveHourPct\":null}",
+      "at": "2026-11-01T18:13:09.698Z"
+    },
+    {
+      "name": "the chosen provider is not claude-main",
+      "ok": true,
+      "evidence": "chosen claude-opus-5-5 low on claude-second (claude-sdk)",
+      "at": "2026-11-01T18:13:09.698Z"
+    },
+    {
+      "name": "every run of the task is off claude-main",
+      "ok": true,
+      "evidence": "RXXJYVN claude-sdk claude-second claude-opus-5-5 low done (turn ended: report done)",
+      "at": "2026-11-01T18:13:09.699Z"
+    },
+    {
+      "name": "the step reported",
+      "ok": true,
+      "evidence": "done: The invoice total comes from `invoiceTotalCents` in `src/invoices/index.ts:4`. It adds up `lineTotalCents` for every line on the invoice and returns the total in cents. Evidence: - `src/invoices/index.ts:3`: `lineTotalCents` works out one l",
+      "at": "2026-11-01T18:13:09.699Z"
+    },
+    {
+      "name": "after the restore: providers.json is byte-identical to the backup (cmp) with mode 600",
+      "ok": true,
+      "evidence": "cmp exit 0; mode 600; claude-main.ceilingPct 90",
+      "at": "2026-11-01T18:13:09.703Z"
+    }
+  ],
+  "elapsed": {
+    "taskMs": 11500,
+    "totalMs": 11643
+  },
+  "deviations": [],
+  "notes": "claude-main weekly 66% (stream 2026-11-01T18:02:39.920Z: week 66%, five hours unknown%, week resets 2026-11-02T05:00:00.000Z); ceilingPct set to 50 for the task; Jev chose claude-opus-5-5 low on claude-second"
+}

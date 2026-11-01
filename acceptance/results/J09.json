@@ -1,0 +1,121 @@
+{
+  "id": "J9",
+  "title": "Jev refused",
+  "status": "pass",
+  "startedAt": "2026-11-01T18:11:16.497Z",
+  "endedAt": "2026-11-01T18:12:12.288Z",
+  "tag": "j9a",
+  "checks": [
+    {
+      "name": "gate: jv status shows no running work",
+      "ok": true,
+      "evidence": "jv status --json: 0 tasks in flight, 0 live step runs; not-done tasks T3XKZ7A stopped, TQ9JMCZ stopped; waited 128 ms",
+      "at": "2026-11-01T18:11:16.627Z"
+    },
+    {
+      "name": "the coordinator is running (it receives the wake line)",
+      "ok": true,
+      "evidence": "RFGASJC running, screen ready",
+      "at": "2026-11-01T18:11:16.892Z"
+    },
+    {
+      "name": "the Jev key file exists before the journey",
+      "ok": true,
+      "evidence": "/home/ggomes/.jv/secrets/jev.key: true; /home/ggomes/.jv/secrets/jev.key.j9-off: false",
+      "at": "2026-11-01T18:11:47.717Z"
+    },
+    {
+      "name": "the key was renamed in place (not copied), mode kept",
+      "ok": true,
+      "evidence": "/home/ggomes/.jv/secrets/jev.key -> /home/ggomes/.jv/secrets/jev.key.j9-off; mode 600 -> 600",
+      "at": "2026-11-01T18:11:47.717Z"
+    },
+    {
+      "name": "jv task create exits 2 with \"no key configured\"",
+      "ok": true,
+      "evidence": "exit 2: Jev: no key configured (task TN6DEFT is queued; jv task resume TN6DEFT starts it once Jev answers)",
+      "at": "2026-11-01T18:11:48.891Z"
+    },
+    {
+      "name": "the task exists",
+      "ok": true,
+      "evidence": "TN6DEFT (request acceptance-j09-j9a)",
+      "at": "2026-11-01T18:11:48.892Z"
+    },
+    {
+      "name": "the task is queued with the Jev reason",
+      "ok": true,
+      "evidence": "queued: step 1 (investigate) not placed: Jev: no key configured",
+      "at": "2026-11-01T18:11:48.893Z"
+    },
+    {
+      "name": "its step is pending with that reason",
+      "ok": true,
+      "evidence": "step 1 investigate pending: Jev: no key configured",
+      "at": "2026-11-01T18:11:48.893Z"
+    },
+    {
+      "name": "no run was started and no placement written",
+      "ok": true,
+      "evidence": "0 runs, 0 placement decisions",
+      "at": "2026-11-01T18:11:48.895Z"
+    },
+    {
+      "name": "capture-pane of the coordinator shows the [jv] wake line",
+      "ok": true,
+      "evidence": "[jv] TN6DEFT (Default port of the server) step investigate: not placed (Jev: no key configured). Run: jv task show TN6DEFT",
+      "at": "2026-11-01T18:11:48.901Z"
+    },
+    {
+      "name": "the coordinator transcript has the wake line as a user record",
+      "ok": true,
+      "evidence": "2026-11-01T18:11:48.887Z: [jv] TN6DEFT (Default port of the server) step investigate: not placed (Jev: no key configured). Run: jv task show TN6DEFT",
+      "at": "2026-11-01T18:12:01.013Z"
+    },
+    {
+      "name": "after the restore: the key is back with mode 600 and jev.key.j9-off is gone",
+      "ok": true,
+      "evidence": "/home/ggomes/.jv/secrets/jev.key mode 600; /home/ggomes/.jv/secrets/jev.key.j9-off exists: false",
+      "at": "2026-11-01T18:12:01.014Z"
+    },
+    {
+      "name": "after the restore: jv doctor --check jev is OK",
+      "ok": true,
+      "evidence": "OK: reachable, model jev-latest listed (2 models)",
+      "at": "2026-11-01T18:12:01.326Z"
+    },
+    {
+      "name": "jv task resume starts the step (placed by Jev)",
+      "ok": true,
+      "evidence": "how placed; run RGZFZXX; claude-opus-5-5 low on claude-second (claude-sdk)",
+      "at": "2026-11-01T18:12:01.910Z"
+    },
+    {
+      "name": "the task finishes",
+      "ok": true,
+      "evidence": "done: step investigate done",
+      "at": "2026-11-01T18:12:12.285Z"
+    },
+    {
+      "name": "the step has one Jev placement decision and a run on it",
+      "ok": true,
+      "evidence": "DDGXSNG by jev-1.14.0 for RGZFZXX: claude-opus-5-5 low on claude-second; runs RGZFZXX claude-sdk claude-second claude-opus-5-5 low done (turn ended: report done)",
+      "at": "2026-11-01T18:12:12.287Z"
+    },
+    {
+      "name": "the step reported",
+      "ok": true,
+      "evidence": "done: By default the server listens on port 4173, bound to 127.0.0.1. This is set in `src/web/server.ts:14` with `.listen(Number(process.env.PORT ?? 4173), '127.0.0.1')`, so setting the `PORT` environment variable uses a different port. Other pla...",
+      "at": "2026-11-01T18:12:12.287Z"
+    }
+  ],
+  "elapsed": {
+    "createMs": 1022,
+    "resumeMs": 10959,
+    "totalMs": 55790
+  },
+  "deviations": [
+    "the brief does not script this: the owner told the coordinator to only report wake lines during J9, J10 and J12, so its reaction to the wake line was shaped by that notice"
+  ],
+  "notes": "owner notice typed into the coordinator before J9 (2026-11-01T18:11:20.858Z): \"Owner here. I am about to run acceptance journeys J9, J10 and J12, which change jv config on purpose: J9 removes the Jev key for a minute, J10 lowers a provider ceiling, J12 edits the router policy. Until I say they are over, do not resume, answer, override or stop any task yourself; when a [jv] line arrives, just tell me in one line what it says.\" It replied: Got it. Until you tell me J9, J10 and J12 are over, I won't resume, answer, override or stop any task. When a [jv] line comes in, I'll just tell you in one line what it says. That hold is in the notes too, so it survives a restart. Nothing is open right now, so for the moment there's nothing for me to keep my hands off.\nthe coordinator, on the wake line, ran: nothing; said: TN6DEFT \"Default port of the server\" didn't start its investigate step: Jev has no key configured, as J9 intended, so I've left it alone.\nThe deviation above was added to this file by hand after the run (the script now records it itself)."
+}

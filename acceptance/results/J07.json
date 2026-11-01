@@ -1,0 +1,72 @@
+{
+  "id": "J7",
+  "title": "Lost and resumed",
+  "status": "pass",
+  "startedAt": "2026-11-01T17:58:04.749Z",
+  "endedAt": "2026-11-01T17:58:35.162Z",
+  "tag": "j7a",
+  "checks": [
+    {
+      "name": "jv task create (single implement) exits 0",
+      "ok": true,
+      "evidence": "TJPY9HT; run RHTC83S: claude-sonnet-5-5 medium on claude-second (claude-sdk)",
+      "at": "2026-11-01T17:58:06.122Z"
+    },
+    {
+      "name": "the implement run is running with a native session id and its first tool calls, before the kill",
+      "ok": true,
+      "evidence": "RHTC83S claude-sdk claude-second claude-sonnet-5-5 medium running (claude-sdk turn running); native adc47314-6425-40a8-a02f-680119697f2a; pgid 3814264; 1 tool calls",
+      "at": "2026-11-01T17:58:10.649Z"
+    },
+    {
+      "name": "jv status shows the run lost within 10 s",
+      "ok": true,
+      "evidence": "124 ms: task TJPY9HT lost=true, run RHTC83S lost; row lost: process 3814264 ended without an end event",
+      "at": "2026-11-01T17:58:10.774Z"
+    },
+    {
+      "name": "jv task resume exits 0 and continues natively",
+      "ok": true,
+      "evidence": "native as RJJBTZZ",
+      "at": "2026-11-01T17:58:10.939Z"
+    },
+    {
+      "name": "the resume is a new run row with the same native_session_id",
+      "ok": true,
+      "evidence": "RHTC83S adc47314-6425-40a8-a02f-680119697f2a -> RJJBTZZ adc47314-6425-40a8-a02f-680119697f2a; launching jv run",
+      "at": "2026-11-01T17:58:10.940Z"
+    },
+    {
+      "name": "the implement step finishes done",
+      "ok": true,
+      "evidence": "step 1 implement: done: report done (RJJBTZZ)",
+      "at": "2026-11-01T17:58:35.156Z"
+    },
+    {
+      "name": "the resumed conversation reports done",
+      "ok": true,
+      "evidence": "RJJBTZZ done: Added a one-line comment at the top of src/invoices/index.ts: \"Computes invoice line and invoice totals in cents, and formats invoice dates.\" Committed as ff57fd0 with no trailers, because this step said to add none. The worktree is clean. No tests were run, since the change is a comment only.",
+      "at": "2026-11-01T17:58:35.157Z"
+    },
+    {
+      "name": "the task ends done",
+      "ok": true,
+      "evidence": "done: landed ff57fd0415cd on main",
+      "at": "2026-11-01T17:58:35.157Z"
+    },
+    {
+      "name": "the landed commit is on sandbox main",
+      "ok": true,
+      "evidence": "ff57fd0415cd3341aaf1e39127065b62b14636a8",
+      "at": "2026-11-01T17:58:35.162Z"
+    }
+  ],
+  "elapsed": {
+    "lostSeenMs": 124,
+    "totalMs": 30413
+  },
+  "deviations": [
+    "the brief's \"single tasks do not land; its branch stays for gc\" no longer holds since D-078: the step committed, so the task landed (L93KZ9C land ff57fd0415cd3341aaf1e39127065b62b14636a8)"
+  ],
+  "notes": "landing L2TY5JQ was asked (landing: ask the owner: Touches a risky area, changes stored data or production behaviour, or is large or hard to undo.); answered \"Land now\" as the owner: ok"
+}

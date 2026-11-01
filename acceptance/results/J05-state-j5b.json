@@ -1,0 +1,10 @@
+{
+  "tag": "j5b",
+  "typedAt": "2026-11-01T17:39:26.215Z",
+  "text": "One more README change, and I want to watch this one in tmux too: in the How to run section, say which address npm start serves the pages on (127.0.0.1, port 4173 unless PORT is set).",
+  "task": "TEVV4PD",
+  "watchers": [
+    "R7VRPT1",
+    "RY6GGKS"
+  ]
+}

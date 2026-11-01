@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.jv/runtime/dist/report-guard.mjs"
+          }
+        ]
+      }
+    ]
+  }
+}

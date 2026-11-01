@@ -1,0 +1,6 @@
+{ "name": "feature", "steps": [
+  { "duty": "plan", "when": "jev:needs_plan", "instructions": "Write plan.md at the worktree root: the change in one paragraph, the files to touch, the tests to add or change, open questions as needs-decision only if a choice is the owner's." },
+  { "duty": "implement", "instructions": "Follow plan.md when it exists. Commit on the task branch. Add or change the tests that cover what you changed, and run only those." },
+  { "duty": "verify", "instructions": "Run the project's test command, then the browser journeys for every screen the change touches, at desktop and phone widths, saving screenshots to .jv-evidence/. Report testsRun with passed true only when everything you ran passed.", "onFail": { "goto": "implement", "maxLoops": 2 } },
+  { "duty": "document", "when": "jev:needs_docs", "instructions": "Update the docs the project keeps (README, docs/, changelog if the project uses one) for what changed. Nothing else." }
+] }

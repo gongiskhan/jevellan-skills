@@ -1,0 +1,4 @@
+{ "name": "bug", "steps": [
+  { "duty": "implement", "instructions": "Reproduce first with a failing test when the bug is testable, then fix. Commit on the task branch." },
+  { "duty": "verify", "instructions": "Run the project's test command and the browser journey for the affected screen if there is one. Save evidence to .jv-evidence/.", "onFail": { "goto": "implement", "maxLoops": 2 } }
+] }

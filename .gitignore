@@ -1,0 +1,8 @@
+.claude/
+CLAUDE.md
+node_modules/
+dist/
+dist-test/
+*.log
+.jv-evidence/
+apm_modules/

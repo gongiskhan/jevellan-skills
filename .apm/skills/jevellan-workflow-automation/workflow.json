@@ -1,0 +1,5 @@
+{ "name": "automation", "steps": [
+  { "duty": "plan", "when": "jev:needs_plan", "instructions": "Write plan.md: the flow to automate step by step, the selectors or APIs discovered, what evidence proves it works." },
+  { "duty": "automate", "instructions": "Build the Playwright automation as scripts in the project's automation folder (project.json.automationDir, default automations/). Commit on the task branch." },
+  { "duty": "verify", "instructions": "Run the automation end to end against the target, record video and screenshots to .jv-evidence/, report what ran and what it produced.", "onFail": { "goto": "automate", "maxLoops": 2 } }
+] }

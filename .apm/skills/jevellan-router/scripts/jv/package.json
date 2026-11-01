@@ -1,0 +1,27 @@
+{
+  "name": "jv-runtime",
+  "version": "0.1.0",
+  "description": "The jv runtime of jevellan-skills: store, launcher, runtimes and CLI.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "bin": {
+    "jv": "bin/jv.mjs"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && node --disable-warning=ExperimentalWarning --test \"dist-test/test/**/*.test.js\""
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.316",
+    "@openai/codex-sdk": "0.166.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "jevellan-skills",
+  "version": "0.1.0",
+  "description": "Skills and the jv runtime that turn a Claude Code session into a coordinator for a software project.",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gongiskhan/jevellan-skills.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "bin": {
+    "jv": ".apm/skills/jevellan-router/scripts/jv/bin/jv.mjs"
+  },
+  "files": [
+    ".apm",
+    "!.apm/**/node_modules",
+    "!.apm/**/dist",
+    "!.apm/**/dist-test",
+    "apm.yml"
+  ]
+}

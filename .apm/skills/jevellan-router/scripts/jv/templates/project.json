@@ -1,0 +1,10 @@
+{
+  "testCommand": null,
+  "devCommand": null,
+  "automationDir": "automations/",
+  "commitPlan": false,
+  "pushAfterLanding": false,
+  "retentionDays": 3,
+  "guidance": "",
+  "mcpServers": []
+}

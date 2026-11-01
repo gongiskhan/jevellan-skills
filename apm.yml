@@ -1,0 +1,13 @@
+name: jevellan-skills
+version: 0.1.0
+description: Skills and the jv runtime that turn a Claude Code session into a coordinator for a software project.
+author: gongiskhan
+license: MIT
+targets:
+  - claude
+
+dependencies:
+  apm: []
+  mcp: []
+includes: auto
+scripts: {}

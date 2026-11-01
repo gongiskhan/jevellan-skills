@@ -104,3 +104,57 @@ repository with `.claude/` gitignored (`apm install ../pkg --target claude`), an
 - `placeStep` for the same step against the real Jev (`jev-latest`, answered as `jev-1.14.0`) took two calls
   (model and effort, then provider between claude-main and claude-second) in about 350 ms and 2937 input tokens. With
   `jev.keyFile` pointing at a missing file it exits 2 with "Jev: no key configured" and writes no decisions row.
+
+## 2026-11-01 Runtimes, coordinator and flags, verified in phases 6 and 7
+
+Claude Code 2.1.316, Codex 0.153.4 on PATH and 0.166.0 bundled with the SDK, tmux 3.4. Checked by the phase 6
+coordinator probes (interactive `claude` in tmux under the claude-main home) and by the acceptance runs of
+`acceptance/phase6-coordinator.mjs` (real sandbox) and `acceptance/phase7-runtimes.mjs` (sandbox-clone).
+
+- `--effort` low and high are accepted by the interactive `claude` (a claude-tmux worker on opus low, the coordinator
+  on high; the coordinator's header read "Opus 5.5 with high effort").
+- `--append-system-prompt-file F` is not in `claude --help` but works: with it, "what are your rules?" recited the
+  jv command list and the project name, and the phase 6 coordinator opened its reply "I coordinate
+  jevellan-live-sandbox...". It is accepted together with `--remote-control <name>`, `--model`, `--effort`,
+  `--permission-mode bypassPermissions` and `--session-id`.
+- `--permission-mode dontAsk` with `--tools` and `--allowedTools`, and `--settings <json>`, were accepted by the
+  claude-tmux workers, which reported through `mcp__jv__jv_report`.
+- `--setting-sources user` drops the CLAUDE.md files of ancestor folders: a `claude -p` probe under the owner's home listed
+  the owner's `~/.claude/CLAUDE.md` and `~/.claude/rules/caveman.md` as project instructions without the flag and
+  answered NONE with it; a worker transcript had "Contents of /home/ggomes/.claude/rules/caveman.md" before the flag
+  and 0 matches after. The coordinator (run without it) still loads both, plus the checkout's `CLAUDE.md ->
+  AGENTS.md`, and the caveman rule overrode its voice.
+- `--agent jevellan-coordinator` loads `<home>/.claude/agents/jevellan-coordinator.md` (the header showed
+  `@jevellan-coordinator`), but its `{{...}}` placeholders reach the model unfilled.
+- `--session-id <uuid>` names the transcript file. The transcript path is `<provider home>/.claude/projects/<cwd
+  with every non-alphanumeric character as "-">/<uuid>.jsonl` (seen for run RVNRDCM under the claude-second home).
+- No first-run dialog appeared once `hasCompletedOnboarding`, `projects["<cwd>"].hasTrustDialogAccepted` (in
+  `<home>/.claude.json`) and `skipDangerousModePermissionPrompt` (in `<home>/.claude/settings.json`) were set; Claude
+  Code writes the same keys itself when a dialog is accepted, and both dialogs default to "No, exit". The theme
+  dialog never appeared once onboarding was set.
+- `/exit` ends an interactive session in about 1 s. `tmux load-buffer` plus `paste-buffer -p -d` plus Enter
+  delivered a 44-line handoff as one message; the `=name:` target syntax works for `send-keys` and `capture-pane`.
+  A coordinator restart reached a ready prompt in under 2 s, and the restarted coordinator answered the handoff 9 s
+  later.
+- Remote Control is refused for a long-lived token login: after 20 s there was no status line or URL, and
+  `/remote-control` answered exactly "Remote Control requires a full-scope login token. Long-lived tokens (from claude
+  setup-token or CLAUDE_CODE_OAUTH_TOKEN) are limited to inference-only for security reasons. Run claude auth login
+  to use Remote Control." (D-054)
+- With `ENABLE_CLAUDEAI_MCP_SERVERS=false` set, a coordinator transcript still showed an `mcp_instructions_delta`
+  adding `claude-artifacts`.
+- Codex `model/list` (app-server) lists `gpt-6-astra` (the default), `gpt-5.6-sol`, `gpt-5.6-terra` and
+  `gpt-5.6-luna`; their efforts include `ultra`, which `mapEffort` refuses with exit 2. `gpt-6.1-sol` is not offered.
+  `jv providers check` lists the three `gpt-5.6-*` ids as offered and not configured.
+- Codex reports through the `jv.jv_report` tool, an MCP server in the thread's config (run RMDJBXZ, thread
+  `01a197b7-...`); it needed no login. Codex reported usage once per turn.
+- Five-hour usage is not returned by either probe: `jv providers check` gave weekly percentages (claude-main 63%,
+  claude-second 42%, codex 1%) and "five hours unknown" for all three.
+- claude-tmux events reached the store within 253 ms of the transcript (wall clock, three tool calls: Grep 252,
+  ToolSearch 252, `mcp__jv__jv_report` 253).
+- A claude-sdk run whose process group got SIGKILL showed as lost in `jv status` after 126 ms, and `jv task resume`
+  continued it natively with the same native session id.
+- Not yet exercised: Codex resume and attach; whether Codex `turn.completed` counts are thread totals or per turn (one
+  turn only); whether `claude --resume <uuid>` in a fresh window appends to the same transcript file; how Stop-hook
+  feedback appears in a transcript, and whether the Stop hook still blocks under `--setting-sources user` (every tmux
+  run reported, so no block was seen); a coordinator restart while a task waits on the owner (J8 proper); Remote
+  Control with a full claude.ai login.

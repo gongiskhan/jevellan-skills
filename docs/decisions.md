@@ -351,3 +351,312 @@ placeholders, filled by `src/prompt.ts` from the duty: `{{isolation}}` (write du
 ... does not commit"; llm duties: no repository at all), `{{report}}` (the brief's jv_report rule, or the fenced
 block for llm duties) and `{{work}}` (the evidence and surgical tests bullets, for write duties only). Every other
 line is the brief's.
+
+## D-038 Task request ids, the creation preflight and the placement row
+
+Without `--request-id`, a task's request id is `auto:` plus the sha256 of the JSON array `[project id, kind, duty,
+title (whitespace collapsed), text (CRLF to LF, trailing whitespace trimmed), parent, after, visible]`, so the same
+command typed twice is one task (D-019). Before any row is written, `jv task create` checks the providers only: a
+recorded login state (D-012) counts as fresh for 12 hours, a missing or stale one of a Claude or Codex provider is
+probed with the doctor's `login:<name>` check, `openai-compatible` providers are never probed, and a refusal is exit 2
+with the doctor lines. Jev is not checked before creating, so a missing key (J9) leaves a queued task whose step is
+pending with the Jev message; `jv task resume` places it once the key is there. `task.md` holds the stored task text
+exactly. Each run's placement has request id `run:<decision id>`, and the run id is written to the decision's
+`session_id`.
+
+## D-039 Task worktrees and the setup command
+
+A workflow whose every duty is `answer` or `converse` gets no worktree: it runs in the project checkout and never
+lands. Every other task's worktree is based on the local default branch, or `origin/<default>` when the local branch
+is missing; a failed `git fetch` is only a warning. A reused worktree reports its fork point (`merge-base`); an
+existing branch is exit 4 and an unknown folder at the path is exit 2. Nothing is pruned, removed or deleted. The
+project's setup command runs once per worktree (meta `worktree_setup:<T>`), right before `runtime.start` on the first
+turn of a run and never on a resume; its output goes to the session log and one `tool-result` event carries the
+result. A failure fails the run with exit 2 ("worktree setup failed: ...") and is retried on the next run. Until the
+end-to-end check wired it into `run.ts`, the setup command never ran.
+
+## D-040 Step failures, retries, the progress budget and lost runs
+
+A step that fails with no `on_fail` fails and puts the task in waiting-owner; the extra verify step that
+verify-then-land adds goes back to landing instead (D-046). With `on_fail` goto, the loops used are the goto target's
+`attempts - 1`; steps after the target return to pending and skipped steps stay skipped. A placement of a step gets 20
+continues (`MAX_PROGRESS`); the 21st progress report blocks. Lost runs are never advanced automatically: `jv status`
+marks them at read time and `jv task resume` continues them (J7).
+
+## D-041 The run process finishes advancing before it exits, and a stopped row stays stopped
+
+`run.ts` awaits `afterRun` and starts the exit timer of `commands/run.ts` only after it returns. Without the await its
+`finally` closed the store and the process exited 2 s later, so every path that places a step through Jev (the next
+step after done, an `on_fail` goto, the automatic landing) hit a closed store or was killed. A stopped session row is
+never moved back to starting or running: an override right after creating a step had the run process write `running`
+over `stopped`, so the reason read "stopped (SIGTERM)" instead of "overridden by the owner".
+
+## D-042 Owner commands on a task and `jv status`
+
+`jv task stop` without `--discard` keeps the task state and only updates the reason. With `--discard`, running or
+retrying steps become `failed` with "discarded by the owner" and no placement outcome is recorded, and open landings
+close (D-050). A message or answer from a coordinator caller (`JV_SESSION` names a coordinator session) is stored with
+direction `coordinator`; otherwise an answer is `answer` and a message is `owner`. Answers resume through the normal
+delivery of undelivered messages; `jv task message` types into the live window of a claude-tmux conversation with
+`typeIntoConversation` (D-006), not `runtime.resume`, which waits for the whole turn. `answer` and `message` refuse
+when every step is done ("only landing is left: jv land T"). `jv status` leaves done tasks out and lists them as
+`recent` for 24 hours; failed and stopped tasks stay listed for 24 hours.
+
+## D-043 Landing refusals, Jev failures and `--force`
+
+With `auto` (the landing `afterRun` starts), a refusal puts the task in waiting-owner and wakes the coordinator;
+nothing is thrown. Without `auto`, a refusal is exit 2 and changes nothing. A Jev failure puts the task in
+waiting-owner, sends the coordinator a "Jev refused (...)" line and exits 2, with no landing row and no decision row;
+Jevellan fell back to ask-owner instead, which would hide a broken Jev behind an ordinary question. `--force` writes
+no decision row (the landing has `decision_id` null), skips a landing verify step that is not running, and marks an
+open verify-then-land landing `failed` with "replaced: forced by the owner"; the uncommitted-changes check still
+applies. A landing outside the auto path (`jv land`, `--force`, "Land now") calls `advance.releaseDependents`, as the
+auto path does, so tasks waiting `--after` it start. `jv land` exits 0 for landed, checking or asked, 2 for failed or
+refused, and 3 for an unknown task.
+
+## D-044 One landing at a time per project
+
+A landing holds meta `landing_lock:<project id>`; a lock whose holder pid is gone is taken over, and a waiting landing
+gives up after 60 minutes. If the default branch moves during a landing, the merge, the checks and the fast-forward
+repeat, up to 3 rounds.
+
+## D-045 How a task branch lands, and the landing checks
+
+The default branch is merged into the task branch with `--no-ff`; a branch with nothing of its own fast-forwards
+instead, so an empty merge commit never lands, and a task with zero changed files lands as a no-op. The default branch
+then moves by `merge --ff-only` when it is checked out and clean in the touched files; checked out and dirty in those
+files fails the landing and puts the task in waiting-owner with a reason naming the files; another branch or a
+detached HEAD gets `push . <branch>:<default>` (the ref only). Checks run with `sh -c` in their own process group,
+with a default timeout of 30 minutes, and get the base environment keys, the owner's own HOME, the git identity and
+the Playwright browsers path, nothing from providers or Jev. A check that moves HEAD fails. The last 4000 characters
+of output are kept, redacted.
+
+## D-046 verify-then-land continues without a second Jev call
+
+Meta `landing_step:<L>` names the extra verify step. `afterRun` hands that step back to `landTask(store, id, {auto:
+true})` whether it passed or failed (`isLandingVerifyStep`), and that call lands or fails from the step's result
+without asking Jev again.
+
+## D-047 landing.json, the landing state and the landing decision row
+
+landing.json is validated strictly: `riskyPaths` and `checks[{name, command, timeoutMs?}]`. The landing state adds to
+Jevellan's schema the project name and guidance, per-step summaries, totals, a `risky` flag per file and the policy's
+`rules`; above 60,000 characters the file list is cut first (risky files are always kept), then the summaries, then
+the task text. The decision row has `kind` `landing`, one `landing_route` question whose criteria come from the
+policy's `## routes`, and `chosen_json` `{route, jevRoute, probabilities, rulesApplied, ruleReason?, source: 'jev'}`.
+When a rules.json rule (D-032) changes the route, the landing reason starts "Jev chose <route> (<its criterion>)."
+followed by the rule's reason; it used to quote the criterion of the route the rule chose, which Jev had not judged.
+
+## D-048 A child task lands into its parent's branch
+
+A task created with `--parent` was branched from the parent's branch, so landing it onto the default branch would have
+moved main onto the parent's unfinished commits without the parent's own landing decision or checks (against J14).
+`landingTarget()` makes the parent's branch the target: `refs/heads/<parent branch>` is merged into the child branch
+and the checks run, then the parent branch moves in the parent's worktree by `merge --ff-only` after the touched files
+are found clean there, otherwise the landing is refused. The default branch never moves for a child and nothing is
+pushed. A child landing is refused (exit 2) when the parent is gone, discarded or already landed, or has no branch or
+registered worktree. gc counts a landed child as landed when its branch is contained in the parent's branch.
+
+## D-049 Answered and replaced ask-owner rows close as failed
+
+An ask-owner landing row stayed `asked` after the owner decided, so the handoff, the coordinator and `jv task message`
+kept offering an answered question, and "Land now" after a later failure refused. The schema has no answered state, so
+such rows close as `failed` with a fixed reason: `landTask` closes them inside the lock, only after its preconditions
+pass (a refused "Land now" leaves the question open), with "answered: Land now (jv land --force)" when forced and
+"replaced by a new landing of the task" otherwise. Only the last landing row of a task can be an open question:
+`askedLanding` returns it only when it is `asked`, and the handoff, `messageTask` and `answerTask` read only that row.
+The evals export marks a row closed with one of these reasons as `stopped`, so it is skipped rather than becoming an
+unlabelled failure. Asked rows written before this were left as they were.
+
+## D-050 Discarding a task closes its open landings
+
+`jv task stop --discard` closes an open verify-then-land landing (`failed`, "discarded by the owner") and an asked
+landing (`failed`, "discarded by the owner (Leave it)"); otherwise the viewer showed the first as checking forever and
+the handoff kept the second as a question.
+
+## D-051 `jv gc`
+
+gc handles done tasks with a `landed_commit` and stopped tasks, by `ended_at` against `retentionDays`. It removes a
+worktree only when it is clean and its branch is contained in the default branch (or the parent's branch, D-048),
+after moving `.jv-evidence/` and an untracked `plan.md` to the archive folder; everything else is moved with `git
+worktree move` to `~/.jv/archive/worktrees/<project>/<name>-<date>`. `worktree_path` follows to the archive folder, or
+becomes null when nothing was archived. Meta `gc:<T>` makes it handle each task once. It never prunes and never
+touches a branch. The command has `--json`, `--dry-run` and `--project`.
+
+## D-052 The coordinator's launch: fixed placement and the prompt file
+
+The coordinator always runs on claude-main, `claude-opus-5-5`, effort high (fixed in code); start refuses (exit 2)
+when providers.json does not list that model or effort. Its prompt goes through `--append-system-prompt-file`, not
+`--agent`: `--agent jevellan-coordinator` loads the agent file, but the file cannot carry filled placeholders and
+`{{project}}`, `{{path}}`, `{{default_branch}}` and `{{jv}}` reached the model unfilled.
+
+## D-053 First-run dialogs are pre-accepted, by two helpers
+
+Both first-run dialogs default to "No, exit", and a wake or a typed message would answer one. `jv coordinator start`
+(`preacceptDialogs`) writes, before claude starts, `hasCompletedOnboarding`,
+`projects["<cwd>"].hasTrustDialogAccepted` in `<home>/.claude.json` for both the stored checkout path and its
+realpath, and `skipDangerousModePermissionPrompt` in `<home>/.claude/settings.json`. Workers use
+`prepareClaudeInteractiveHome`, which sets `hasCompletedOnboarding`, `fullscreenUpsellSeenCount: 100` and trust for
+both the main checkout of a worktree and the worktree itself, passes the bypass setting with `--settings` instead of
+writing it, and refuses homes outside `$JV_HOME/homes`. Both are idempotent, keep every other key and write
+atomically. They were left as two helpers.
+
+## D-054 Remote Control only for a full login
+
+Claude Code refuses Remote Control for a long-lived token login (findings 2026-11-01), which every Claude provider
+with a tokenFile is (D-003, D-023). `--remote-control jv-coord-<project>` is therefore passed only for a
+claude-subscription provider without a tokenFile; otherwise `jv coordinator status` reports Remote Control
+"unavailable", quotes the refusal and names the command that would turn it on. Using Remote Control needs a full
+claude.ai login in the claude-main home, which is the owner's call.
+
+## D-055 The coordinator's session row and what counts as ours
+
+The coordinator row has kind `coordinator`, runtime `claude-tmux`, `native_session_id` the uuid passed to
+`--session-id`, request id `coordinator:<projectId>:<uuid>`, tmux target `=jv-coord-<project>:`, and pid and pgid of
+the pane, so `markLost` covers it. Meta `coordinator:<projectId>` holds `{sessionId, projectId, projectName,
+tmuxSession, promptFile, startedAt, stoppedAt?, remoteControl}`. A coordinator is ours when that record is live, the
+row is starting or running, the tmux session exists and the pane's command line contains the R id; a tmux session with
+our name that fails this is refused and left alone.
+
+## D-056 Waking the coordinator
+
+`notifyCoordinator` never throws. Meta `wake:<projectId>` holds `{lastSentAt, pending[], flusher{pid, dueAt}}` and is
+read and written only in transactions; a flusher whose pid is gone, or which is 30 s past its due time, is taken over
+by the next event. Wake lines are made into one line, cut to 500 characters and passed through the redactor.
+
+## D-057 Restart, handoff and notes
+
+Restart stops the session with `/exit`, then types "Handoff from your previous session: " literally and pastes the
+handoff body (a tmux buffer pasted with `-p`, then Enter, so it arrives as one message). The handoff lists failed
+tasks of the last 7 days; Jev refusals are pending steps whose `state_reason` starts with "Jev: ". `jv notes write`
+refuses empty stdin or stdin that is a terminal, archives the previous notes to
+`~/.jv/archive/<project>/notes/notes-<time>.md`, writes atomically with mode 600 through the redactor, and caps notes
+at 256 KiB. `jv notes show --project N` prints them.
+
+## D-058 The claude-tmux runtime
+
+A claude-tmux row's pid and pgid are the pane process when jv starts a window; when a resume types into a live window
+the pid stays the watcher's, because `isRunAlive` looks for the row id in the process command line. `--effort` is
+passed when the session's effort is low, medium, high, xhigh or max, and left out otherwise. Read-only duties run with
+`dontAsk` and D-026's tools and allowedTools, not bypassPermissions. If a launch fails before the prompt appears, the
+generated native id is cleared from the row. A turn that ends with no report gets `NO_REPORT_PROMPT` once after an
+8-second grace and, with still none, a synthesized `blocked` (D-028's backstop for this runtime); multi-line prompts
+are sent as a bracketed paste rather than with `send-keys -l`. A window closes when its step is done or its task ends;
+a step waiting on the owner keeps it, and only `jv-R<6>` names are ever killed (a finished task's window stayed open
+before). claude-tmux workers and the claude-sdk takeover window of `jv attach` pass `--setting-sources user`, as the
+SDK runtime does: Claude Code loads CLAUDE.md and `.claude/rules` from the ancestor folders of the cwd, and every
+worktree is under the owner's home, so without it the owner's own `~/.claude/CLAUDE.md` and rules reached workers as
+project instructions.
+
+## D-059 The Codex runtime
+
+It uses the Codex binary bundled with the SDK (0.166.0) everywhere, for the runtime, attach and login; `codex` on PATH
+is 0.153.4. `project_doc_max_bytes` is 256 KiB and MCP servers are pre-approved (`default_tools_approval_mode:
+approve`). The plan duty runs workspace-write without network and without the git directories, so it can write plan.md
+but cannot commit; write duties also get the worktree's git directories. A provider whose environment has no
+`CODEX_HOME` is refused (exit 2). `turn.completed` usage is treated as running thread totals and recorded as deltas,
+as D-027 does for claude-sdk. "Instructions for this session:" is sent only with the first message of a thread;
+resumes send the message alone. Codex is left out of the placement menu of a `--visible` step, which needs a tmux
+window to watch; an owner override onto Codex is still allowed.
+
+## D-060 The llm runtime
+
+The Claude path uses the `claude_code` preset plus the append (section 6.1's form), with `tools: []`, `maxTurns: 1`,
+no MCP, `dontAsk` and `settingSources: []`, so the Stop hook never blocks a tool-less turn. An openai-compatible
+conversation gets a made-up native id `llm-<uuid>` so its resume rows can find each other, and its history is the
+earlier rows' `message` events that carry a role. A provider that refuses `reasoning_effort` gets the effort as a line
+of the system message instead, and meta `llm_effort:<provider>=refused` remembers that. An invalid report block is
+synthesized the same way as a missing one.
+
+## D-061 `jv providers check`, usage rows and `jv providers login`
+
+Each configured model is matched to an offered one by id, else by the first word of its label (for example "Opus"); a
+match keeps its label, efforts and maxTokens. Unmatched models are dropped unless nothing matched at all. Offered
+models nobody configured are listed, never added, because they would have no policy description. "same as" lists are
+kept, and providers.json is written only on change, mode 600. The fix text depends on the case: an unreachable
+endpoint gets "make sure <url> is reachable or set enabled false", a provider with no key file named gets "name a
+keyFile", and a missing key gets "write the key" (an unreachable ollama was told to write its key). `local` usage rows
+are written only for openai-compatible providers, because a subscription's probe would be hidden by them. A Claude
+subscription without a tokenFile is probed with the access token of the home's `.credentials.json`; when that token
+expired, the provider counts as ready with no usage. `jv providers login` refuses providers that log in with a
+tokenFile or key file and names the file to write; its tmux name `jv-login-<name>` is a third tmux name pattern.
+
+## D-062 `jv attach`
+
+`jv attach` marks the newest run of the conversation `waiting` ("attached by owner"), for codex as for claude-sdk. It
+refuses while a turn is running and refuses llm sessions. Inside tmux it uses `switch-client`.
+
+## D-063 The viewer reads the store on its own read-only connection
+
+The viewer never calls `Store.open`: it has its own `DatabaseSync(file, {readOnly: true})` connection and checks the
+schema version (another schema is exit 2 at start; a missing store gives 503 until it appears). Lost is computed at
+read time the way `markLost` decides it (`isRunAlive` plus no `end` event) and never written. The live stream polls
+each second: `PRAGMA data_version` plus the set of starting or running sessions whose process is gone; on `change` the
+page fetches its endpoint again and patches the DOM in place. The current step is the running or retrying step, else
+the step at the `tasks.current_step` ordinal (unless skipped), else the first pending step, else the last step that
+was not skipped. `state_json` is never served and all JSON goes through `defaultRedactor().redactValue`.
+
+## D-064 Viewer binding, host guard, evidence and headers
+
+`--bind` takes exactly one IP address of this machine (`localhost` maps to 127.0.0.1); `0.0.0.0`, `::` and hostnames
+are refused with exit 2. Against DNS rebinding, the Host header must be an IP literal, localhost, `os.hostname()` (or
+a name starting with it) or a `*.ts.net` name; anything else gets 403. Evidence is served only from the task's
+`worktree_path`: every path segment a plain name, the folder's realpath inside the worktree and the file's inside the
+folder, an image extension plus a matching byte signature (png, jpeg, gif, webp, avif), served as the sniffed type, at
+most 32 MB; every refusal is a 404 that names no path. A report screenshot gets a `url` only when it is an image under
+`.jv-evidence/`. Headers: CSP `default-src 'none'; script-src 'self'; style-src 'self'` with no inline styles (bar
+widths are set by script from `data-w`), nosniff, no-referrer and DENY framing.
+
+## D-065 Viewer text
+
+The Markdown renderer escapes everything first, allows links to http(s), site paths and anchors only, turns images
+into links and renders headings two levels smaller. Every date and clock uses the 24-hour clock. The page's text
+helpers live in `ui/format.js` (pure functions) so the unit tests can import them. An event with a result but no tool
+call shows its own name, its command and ok or error (the worktree-setup event was a blank "result" row). Unknown
+usage values are left out of sentences ("five hours -" read as a value); the usage meter still shows "-" in its
+column. The note for hidden tasks names both reasons: "stopped, or ended more than a day ago".
+
+## D-066 Acceptance scripts for phases 4 to 8
+
+`acceptance/phase4-feature.mjs`, `phase5-landing.mjs`, `phase6-coordinator.mjs`, `phase7-runtimes.mjs` and
+`phase8-viewer.mjs` are kept and rerunnable (phases 4 to 7 take `--only`, `--tag` and `--timeout-min`, and phases 4,
+5 and 7 run against a clone named by `JV_ACCEPT_CLONE`; phase 8 is `phase8-viewer.mjs <T> [--url] [--shots] [--widths]
+[--schemes]`). Request ids are `acceptance-phase<N>-<check>-<tag>`, so a rerun with the same tag picks
+up the same tasks. Phase 4 answers a step's needs-decision with its first option, at most three times. Phase 7 moves
+the lost-check task to claude-sdk with an owner override (Sonnet low) when Jev places it elsewhere, because J7 is
+about the default runtime. The coordinator script refuses to start while a coordinator session exists. The clone
+(`sandbox-clone`, push URL `/nonexistent/no-push`) has `testCommand` `TZ=UTC SANDBOX_DATA_DIR=.sandbox-data npm test`,
+because the sandbox's bare `npm test` fails by design in a clean environment; the real sandbox needs the same setting
+before J4.
+
+## D-067 The evals replay and its exit codes
+
+The replay is `src/evals.ts` in the runtime; each policy skill's `evals/run.mjs` is a thin plain-JS wrapper that loads
+it from the installed runtime's dist (`--runtime DIST` or `JV_EVALS_RUNTIME` points at another build), so both skills
+run the same code with no build. Exit 0 is pass, 1 is held-out agreement below `evals/threshold.json` (`{"heldOut":
+0.6}` for both skills), and 2 is a run that cannot be made (no key, a Jev failure, an invalid file). The replay also
+refreshes `state.menu.models[].description` from the current policy and asks the provider question again in a second
+call with the stored criteria; a case the current policy cannot express is listed as stale and not scored.
+
+## D-068 Which decision rows become eval cases
+
+A placement is a success when its outcome is done on the attempt it was placed for; failed, blocked, or done only
+after more attempts gives source failed with expected null. Pending and stopped rows are skipped, and so are rows that
+asked nothing (`only-option`), owner placements (D-033) and answered or replaced asks (D-049). Workflow rows are
+labelled by how the task ended, because nothing writes `outcome_json` for them; landing rows by their landings row
+(landed is a success, failed a failure), linked through `decision_id`. Every fifth eligible row by creation order is
+held-out, the rest dev, and the position counts every eligible row, not only those after `--since`, so a decision
+keeps its split across exports. Merging keeps hand cases and older exports, replaces by decision id, and keeps a
+person's label when a failed case is exported again unlabelled.
+
+## D-069 The Skillio runner contract
+
+Skillio runs a skill's own evals when its frontmatter has `jv-eval-runner: evals/run.mjs` (a relative path inside the
+skill folder that exists); trigger evals are skipped only when `disable-model-invocation: true` is also set. It calls
+`<node> evals/run.mjs --split all|tuning|held-out` from the skill folder, with Claude Code session variables removed
+and HOME and PATH kept; `tuning` is our `dev` split, which `run.mjs` maps. Its tags map to splits: `held-out` or
+`<skill>:held-out` to held-out, `tuning` or `<skill>:tuning` to tuning, anything else to all, and trigger-only tags
+exit 0 without running. The runner prints `<split> agreement: <n>%` lines (`held-out`, `tuning`, `all`) and a bare
+`agreement:` line for the split it ran, and exits 0 at or above its threshold and 1 below it; any other exit is a
+runner failure. A change is kept only if held-out agreement beats the baseline run by more than the noise and the
+runner still exits 0. Skillio's side is https://github.com/gongiskhan/skillio/pull/2 (not merged).

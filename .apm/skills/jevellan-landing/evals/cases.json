@@ -1,0 +1,601 @@
+{
+  "skill": "jevellan-landing",
+  "cases": [
+    {
+      "id": "hand-land-docs-only",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "Document the CSV export",
+        "task": {
+          "id": "TL00001",
+          "kind": "feature",
+          "text": "Document the orders CSV export in the README and docs/api.md."
+        },
+        "summaries": [
+          {
+            "duty": "document",
+            "summary": "Added the CSV export endpoint, its filters and an example request to docs/api.md and a short section to the README."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": "docs/api.md",
+            "bytes": 2148,
+            "additions": 46,
+            "deletions": 0,
+            "risky": false
+          },
+          {
+            "path": "README.md",
+            "bytes": 856,
+            "additions": 12,
+            "deletions": 1,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 2,
+          "additions": 58,
+          "deletions": 1,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm test",
+            "passed": true,
+            "summary": "npm test: all tests passed"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "land"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "Documentation only, outside the risky areas, tests passed."
+    },
+    {
+      "id": "hand-land-small-fix-tested",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "Just-now times say \"in 0 minutes\"",
+        "task": {
+          "id": "TL00002",
+          "kind": "bug",
+          "text": "Activity times of less than a minute ago say \"in 0 minutes\"; they should say \"just now\"."
+        },
+        "summaries": [
+          {
+            "duty": "implement",
+            "summary": "relativeTime returns \"just now\" for differences under 60 seconds in either direction (clock skew made some of them negative). Added tests for -5 s, 0 s, 59 s and 61 s."
+          },
+          {
+            "duty": "verify",
+            "summary": "npm test passed (412 tests). The activity feed shows \"just now\" for a new comment at desktop and phone widths."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": "src/utils/relative-time.test.ts",
+            "bytes": 1198,
+            "additions": 21,
+            "deletions": 0,
+            "risky": false
+          },
+          {
+            "path": "src/utils/relative-time.ts",
+            "bytes": 666,
+            "additions": 7,
+            "deletions": 3,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 2,
+          "additions": 28,
+          "deletions": 3,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm test",
+            "passed": true,
+            "summary": "npm test: all tests passed"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "land"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "Two files, a few lines, outside the risky areas; the test added by the task covers the fix."
+    },
+    {
+      "id": "hand-land-migration",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "Soft delete for customers",
+        "task": {
+          "id": "TL00003",
+          "kind": "feature",
+          "text": "Add deleted_at to customers and filter deleted customers out of every list."
+        },
+        "summaries": [
+          {
+            "duty": "implement",
+            "summary": "Added migration 0042 (deleted_at on customers, an index on it), a notDeleted scope used by every customer query, and the Restore button on the admin page."
+          },
+          {
+            "duty": "verify",
+            "summary": "npm test passed; the admin journey deletes and restores a customer."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": "src/models/customer.test.ts",
+            "bytes": 2376,
+            "additions": 52,
+            "deletions": 0,
+            "risky": false
+          },
+          {
+            "path": "src/admin/customers/page.tsx",
+            "bytes": 2072,
+            "additions": 44,
+            "deletions": 3,
+            "risky": false
+          },
+          {
+            "path": "src/models/customer.ts",
+            "bytes": 1578,
+            "additions": 31,
+            "deletions": 8,
+            "risky": false
+          },
+          {
+            "path": "db/migrations/0042_customers_deleted_at.sql",
+            "bytes": 628,
+            "additions": 6,
+            "deletions": 0,
+            "risky": true
+          }
+        ],
+        "totals": {
+          "files": 4,
+          "additions": 133,
+          "deletions": 11,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm test && npm run e2e",
+            "passed": true,
+            "summary": "418 unit tests and 12 browser journeys passed"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "ask-owner"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "A schema migration: stored data, a risky area whatever the size."
+    },
+    {
+      "id": "hand-land-session-expiry",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "Sessions expire after 7 days instead of 30",
+        "task": {
+          "id": "TL00004",
+          "kind": "feature",
+          "text": "Shorten the session lifetime to 7 days and refresh it on activity."
+        },
+        "summaries": [
+          {
+            "duty": "implement",
+            "summary": "SESSION_TTL is 7 days; the auth middleware refreshes the cookie when less than half of the lifetime is left. Tests cover expiry and refresh."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": "src/auth/session.test.ts",
+            "bytes": 1920,
+            "additions": 40,
+            "deletions": 0,
+            "risky": false
+          },
+          {
+            "path": "src/auth/session.ts",
+            "bytes": 1236,
+            "additions": 22,
+            "deletions": 7,
+            "risky": false
+          },
+          {
+            "path": "src/auth/middleware.ts",
+            "bytes": 932,
+            "additions": 14,
+            "deletions": 2,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 3,
+          "additions": 76,
+          "deletions": 9,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm test",
+            "passed": true,
+            "summary": "npm test: all tests passed"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "ask-owner"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "held-out",
+      "note": "Session handling is authentication: a risky area even with passing tests."
+    },
+    {
+      "id": "hand-land-medium-ui-unit-only",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "Dark mode toggle on the settings page",
+        "task": {
+          "id": "TL00005",
+          "kind": "feature",
+          "text": "Add a dark mode toggle to the settings page."
+        },
+        "summaries": [
+          {
+            "duty": "implement",
+            "summary": "ThemeToggle, a theme context persisted to localStorage and CSS variables for both palettes. Unit tests for the context. No browser journey was run."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": "src/styles/theme.css",
+            "bytes": 4960,
+            "additions": 120,
+            "deletions": 35,
+            "risky": false
+          },
+          {
+            "path": "src/context/theme.tsx",
+            "bytes": 3212,
+            "additions": 74,
+            "deletions": 0,
+            "risky": false
+          },
+          {
+            "path": "src/context/theme.test.tsx",
+            "bytes": 2718,
+            "additions": 61,
+            "deletions": 0,
+            "risky": false
+          },
+          {
+            "path": "src/components/ThemeToggle.tsx",
+            "bytes": 2604,
+            "additions": 58,
+            "deletions": 0,
+            "risky": false
+          },
+          {
+            "path": "src/pages/settings.tsx",
+            "bytes": 1084,
+            "additions": 18,
+            "deletions": 4,
+            "risky": false
+          },
+          {
+            "path": "src/components/Header.tsx",
+            "bytes": 742,
+            "additions": 9,
+            "deletions": 3,
+            "risky": false
+          },
+          {
+            "path": "src/app.tsx",
+            "bytes": 628,
+            "additions": 6,
+            "deletions": 2,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 7,
+          "additions": 346,
+          "deletions": 44,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm test",
+            "passed": true,
+            "summary": "npm test: all tests passed"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "verify-then-land"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "A medium UI change outside the risky areas with unit tests only: no check exercises the screens."
+    },
+    {
+      "id": "hand-land-unexercised-default",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "Newest orders first by default",
+        "task": {
+          "id": "TL00006",
+          "kind": "feature",
+          "text": "The orders list should show the newest orders first unless the user picks another sort."
+        },
+        "summaries": [
+          {
+            "duty": "implement",
+            "summary": "The default sort of GET /api/orders is now created_at descending. No test was changed."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": "src/api/orders.ts",
+            "bytes": 438,
+            "additions": 1,
+            "deletions": 1,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 1,
+          "additions": 1,
+          "deletions": 1,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "implement",
+            "command": "npm run lint",
+            "passed": true,
+            "summary": "lint clean"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "verify-then-land"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "held-out",
+      "note": "A one-line behaviour change that only lint checked: small, but not covered."
+    },
+    {
+      "id": "hand-land-deploy-workflow",
+      "kind": "landing",
+      "state": {
+        "schema": "landing-route-state-v1",
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "title": "Deploy on tags only",
+        "task": {
+          "id": "TL00007",
+          "kind": "feature",
+          "text": "Change the deploy workflow so production deploys run on version tags instead of every push to main."
+        },
+        "summaries": [
+          {
+            "duty": "implement",
+            "summary": "deploy.yml now triggers on tags v*.*.* and no longer on pushes to main."
+          }
+        ],
+        "riskyAreas": [
+          "src/billing",
+          "db/migrations"
+        ],
+        "files": [
+          {
+            "path": ".github/workflows/deploy.yml",
+            "bytes": 552,
+            "additions": 4,
+            "deletions": 3,
+            "risky": false
+          }
+        ],
+        "totals": {
+          "files": 1,
+          "additions": 4,
+          "deletions": 3,
+          "filesOmitted": 0
+        },
+        "checks": [
+          {
+            "at": "2026-11-01T10:30:00.000Z",
+            "duty": "verify",
+            "command": "npm test",
+            "passed": true,
+            "summary": "npm test: all tests passed"
+          }
+        ],
+        "corrections": [],
+        "rules": "Risky areas. A change touches a risky area when any changed file, or the behaviour the summaries describe, involves one of these: stored data (database schemas, the shape of records and files the application keeps, data formats other systems read or write); authentication, sessions, permissions and credentials; money (payments, billing, prices, invoices, refunds); deletion (anything that removes, purges or overwrites data or files people keep); concurrency (locks, queues, background workers, retries, jobs that run in parallel); migrations of any kind (schema, data, configuration); and any changed file under one of the project's risky paths, listed in riskyAreas. A path or file name that suggests one of them (migrat, auth, login, credential, pay, billing, delete, remove, lock, queue) counts as touching it unless the summaries show plainly that it does not.\n\nProduction. A change to deploy scripts, CI workflows, infrastructure, environment configuration, or anything that changes what runs in production is a change to production behaviour.\n\nSize. Small is at most two files and about a hundred changed lines; large is more than twelve files or more than about a thousand changed lines; medium is everything in between. Generated files and lock files count for little; tests count for less than the code they test.\n\nChecks. A check counts as coverage only when it passed on this branch and exercises the changed behaviour. No checks, or a verify report whose tests did not pass, is no coverage. Tests added by the task cover what they assert, not the whole change.\n\nCorrections. A task that needed retries (a verification failed and was fixed) leans one route more cautious, unless the final checks plainly cover what failed.\n\nDocumentation-only and test-only changes outside the risky areas whose checks passed land."
+      },
+      "questions": {
+        "landing_route": {
+          "type": "choice",
+          "instructions": "Choose how this checked task reaches the project's default branch. Judge it from what changed (the files, their size, and whether any of them falls in a risky area), from what the checks that passed actually exercise, and from the corrections the task needed on the way. When two routes fit about equally, choose the more cautious one.",
+          "criteria": {
+            "land": "Small or low-risk change outside the project's risky areas, covered by the checks that passed.",
+            "verify-then-land": "A behaviour change the checks do not exercise, or a medium-sized change, outside the risky areas.",
+            "ask-owner": "Touches a risky area, changes stored data or production behaviour, or is large or hard to undo."
+          }
+        }
+      },
+      "expected": {
+        "landing_route": "ask-owner"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "A CI deploy workflow changes production behaviour."
+    }
+  ]
+}

@@ -1,0 +1,1407 @@
+{
+  "skill": "jevellan-router",
+  "cases": [
+    {
+      "id": "hand-ui-feature-implement",
+      "kind": "placement",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "T4K2M9Q",
+          "kind": "feature",
+          "title": "Dark mode toggle on the settings page",
+          "text": "Add a dark mode toggle to the settings page. The choice persists across reloads and follows the system setting until the user picks one. Both themes must look right on desktop and phone."
+        },
+        "step": {
+          "instructions": "Follow plan.md when it exists. Commit on the task branch. Add or change the tests that cover what you changed, and run only those.",
+          "attempt": 1,
+          "previous": [
+            {
+              "duty": "plan",
+              "status": "done",
+              "summary": "Plan written to plan.md: a ThemeToggle in the settings header, a theme context persisted to localStorage, CSS variables for both palettes in src/styles/theme.css, and Playwright journeys for the settings page at desktop and phone widths."
+            }
+          ],
+          "ordinal": 2,
+          "duty": "implement"
+        },
+        "duty": {
+          "needs": [
+            "repo-write",
+            "shell"
+          ],
+          "runtimes": [
+            "claude-sdk",
+            "claude-tmux",
+            "codex"
+          ]
+        },
+        "menu": {
+          "models": [
+            {
+              "id": "claude-opus-5-5",
+              "label": "Opus",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable)."
+            },
+            {
+              "id": "claude-fable-5-1",
+              "label": "Fable",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI."
+            },
+            {
+              "id": "claude-sonnet-5-5",
+              "label": "Sonnet",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Only trivial, mechanical work and short documentation."
+            },
+            {
+              "id": "claude-haiku-5-5",
+              "label": "Haiku",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium"
+              ],
+              "description": "Short answers and conversation turns."
+            },
+            {
+              "id": "gpt-6-astra",
+              "label": "GPT",
+              "provider": "codex",
+              "runtime": "codex",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh"
+              ],
+              "description": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude."
+            },
+            {
+              "id": "glm-5.3",
+              "label": "GLM",
+              "provider": "glm",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+            }
+          ],
+          "providers": [
+            {
+              "name": "claude-main",
+              "weeklyPct": 41,
+              "fiveHourPct": 12,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "codex",
+              "weeklyPct": 18,
+              "fiveHourPct": 4,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "glm",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            }
+          ]
+        },
+        "history": {
+          "recent": [
+            {
+              "duty": "plan",
+              "model": "claude-opus-5-5",
+              "effort": "high",
+              "outcome": "done",
+              "attempts": 1
+            }
+          ]
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "model": {
+          "type": "choice",
+          "instructions": "Choose the model for this step. Read the task, the step's duty and instructions, what the earlier steps of this task reported, the recent history and the owner's rules in the state. Each option names a model, the provider account that would run it and the runtime; its text says what the owner uses that model for. Match the work this step will actually do to those texts, and follow the rules wherever they speak to this kind of work. Prefer the model the previous step of this task used when it fits, because consecutive steps on one model reuse its cache. Treat a provider whose weekly usage is close to its ceiling as a last resort. On a retry after a failure, prefer a model at least as strong as the one that failed.",
+          "criteria": {
+            "Opus via claude-main (claude-sdk)": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable).",
+            "Fable via claude-main (claude-sdk)": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI.",
+            "Sonnet via claude-main (claude-sdk)": "Only trivial, mechanical work and short documentation.",
+            "Haiku via claude-main (claude-sdk)": "Short answers and conversation turns.",
+            "GPT via codex (codex)": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude.",
+            "GLM via glm (claude-sdk)": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+          }
+        },
+        "effort": {
+          "type": "choice",
+          "instructions": "Choose the reasoning effort for this step. Effort follows how hard the step is, not how important the task is. Each option says when that level fits; pick the lowest level that fits the work this step will do. Weigh the duty (answers and conversation need little; implementation, planning and verification are usually high), the size and ambiguity of the task, whether it is UI or visual work, and the attempt number: a retry after a step failed at a lower effort goes higher. When the chosen model does not support the level you pick, the next supported level above it is used.",
+          "criteria": {
+            "low": "Short answers and conversation replies. Never for implementation.",
+            "medium": "Small fixes, documentation and mechanical changes.",
+            "high": "Default for implementation, planning and verification.",
+            "xhigh": "Features across many files, architecture, hard debugging, all UI work on Claude.",
+            "max": "After a step failed at a lower effort, or when the task text asks for the hardest effort."
+          }
+        }
+      },
+      "expected": {
+        "model": "claude-opus-5-5",
+        "effort": "xhigh"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "UI implementation after a plan on Opus: the rules send UI to Opus at high or extra high, and the effort guide puts all UI work on Claude at xhigh."
+    },
+    {
+      "id": "hand-long-spec-implement-tight",
+      "kind": "placement",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "T7P3XWA",
+          "kind": "feature",
+          "title": "CSV export of orders",
+          "text": "Add GET /api/orders/export returning CSV. Columns, in order: id, created_at (ISO 8601 UTC), customer_email, status, total_cents, currency. Filters: from, to (dates, inclusive), status (repeatable). Stream rows in pages of 500; never load all orders in memory. Escape per RFC 4180. 403 for non-admins. Tests: one per filter, the escaping of commas and quotes, the 403, and a 10 000 row export under two seconds."
+        },
+        "step": {
+          "instructions": "Follow plan.md when it exists. Commit on the task branch. Add or change the tests that cover what you changed, and run only those.",
+          "attempt": 1,
+          "previous": [],
+          "ordinal": 1,
+          "duty": "implement"
+        },
+        "duty": {
+          "needs": [
+            "repo-write",
+            "shell"
+          ],
+          "runtimes": [
+            "claude-sdk",
+            "claude-tmux",
+            "codex"
+          ]
+        },
+        "menu": {
+          "models": [
+            {
+              "id": "claude-opus-5-5",
+              "label": "Opus",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable)."
+            },
+            {
+              "id": "claude-fable-5-1",
+              "label": "Fable",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI."
+            },
+            {
+              "id": "claude-sonnet-5-5",
+              "label": "Sonnet",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Only trivial, mechanical work and short documentation."
+            },
+            {
+              "id": "claude-haiku-5-5",
+              "label": "Haiku",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium"
+              ],
+              "description": "Short answers and conversation turns."
+            },
+            {
+              "id": "gpt-6-astra",
+              "label": "GPT",
+              "provider": "codex",
+              "runtime": "codex",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh"
+              ],
+              "description": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude."
+            },
+            {
+              "id": "glm-5.3",
+              "label": "GLM",
+              "provider": "glm",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+            }
+          ],
+          "providers": [
+            {
+              "name": "claude-main",
+              "weeklyPct": 84,
+              "fiveHourPct": 37,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "codex",
+              "weeklyPct": 22,
+              "fiveHourPct": 6,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "glm",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            }
+          ]
+        },
+        "history": {
+          "recent": []
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "model": {
+          "type": "choice",
+          "instructions": "Choose the model for this step. Read the task, the step's duty and instructions, what the earlier steps of this task reported, the recent history and the owner's rules in the state. Each option names a model, the provider account that would run it and the runtime; its text says what the owner uses that model for. Match the work this step will actually do to those texts, and follow the rules wherever they speak to this kind of work. Prefer the model the previous step of this task used when it fits, because consecutive steps on one model reuse its cache. Treat a provider whose weekly usage is close to its ceiling as a last resort. On a retry after a failure, prefer a model at least as strong as the one that failed.",
+          "criteria": {
+            "Opus via claude-main (claude-sdk)": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable).",
+            "Fable via claude-main (claude-sdk)": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI.",
+            "Sonnet via claude-main (claude-sdk)": "Only trivial, mechanical work and short documentation.",
+            "Haiku via claude-main (claude-sdk)": "Short answers and conversation turns.",
+            "GPT via codex (codex)": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude.",
+            "GLM via glm (claude-sdk)": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+          }
+        },
+        "effort": {
+          "type": "choice",
+          "instructions": "Choose the reasoning effort for this step. Effort follows how hard the step is, not how important the task is. Each option says when that level fits; pick the lowest level that fits the work this step will do. Weigh the duty (answers and conversation need little; implementation, planning and verification are usually high), the size and ambiguity of the task, whether it is UI or visual work, and the attempt number: a retry after a step failed at a lower effort goes higher. When the chosen model does not support the level you pick, the next supported level above it is used.",
+          "criteria": {
+            "low": "Short answers and conversation replies. Never for implementation.",
+            "medium": "Small fixes, documentation and mechanical changes.",
+            "high": "Default for implementation, planning and verification.",
+            "xhigh": "Features across many files, architecture, hard debugging, all UI work on Claude.",
+            "max": "After a step failed at a lower effort, or when the task text asks for the hardest effort."
+          }
+        }
+      },
+      "expected": {
+        "model": "gpt-6-astra",
+        "effort": "high"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "Long, well-specified backend implementation while claude-main is near its ceiling: the rules prefer GPT through Codex."
+    },
+    {
+      "id": "hand-answer-short",
+      "kind": "placement",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "T2QH8RS",
+          "kind": "single",
+          "title": "Dev server port",
+          "text": "Which port does the dev server listen on?"
+        },
+        "step": {
+          "instructions": "",
+          "attempt": 1,
+          "previous": [],
+          "ordinal": 1,
+          "duty": "answer"
+        },
+        "duty": {
+          "needs": [],
+          "runtimes": [
+            "llm"
+          ]
+        },
+        "menu": {
+          "models": [
+            {
+              "id": "claude-haiku-5-5",
+              "label": "Haiku",
+              "provider": "claude-main",
+              "runtime": "llm",
+              "efforts": [
+                "low",
+                "medium"
+              ],
+              "description": "Short answers and conversation turns."
+            },
+            {
+              "id": "glm-5.3",
+              "label": "GLM",
+              "provider": "glm",
+              "runtime": "llm",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+            },
+            {
+              "id": "deepseek-chat",
+              "label": "DeepSeek",
+              "provider": "deepseek",
+              "runtime": "llm",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Cheap answers and investigation summaries."
+            },
+            {
+              "id": "kimi-k2-turbo-preview",
+              "label": "Kimi",
+              "provider": "kimi",
+              "runtime": "llm",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Cheap answers and conversation turns, and summaries of long texts; never for changes to the repository."
+            },
+            {
+              "id": "qwen3:8b",
+              "label": "Ollama",
+              "provider": "ollama",
+              "runtime": "llm",
+              "efforts": [
+                "low",
+                "medium"
+              ],
+              "description": "A small local model: only the shortest answers and conversation turns, when nothing else is available."
+            }
+          ],
+          "providers": [
+            {
+              "name": "claude-main",
+              "weeklyPct": 41,
+              "fiveHourPct": 12,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "glm",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            },
+            {
+              "name": "deepseek",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            },
+            {
+              "name": "kimi",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            },
+            {
+              "name": "ollama",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            }
+          ]
+        },
+        "history": {
+          "recent": []
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "model": {
+          "type": "choice",
+          "instructions": "Choose the model for this step. Read the task, the step's duty and instructions, what the earlier steps of this task reported, the recent history and the owner's rules in the state. Each option names a model, the provider account that would run it and the runtime; its text says what the owner uses that model for. Match the work this step will actually do to those texts, and follow the rules wherever they speak to this kind of work. Prefer the model the previous step of this task used when it fits, because consecutive steps on one model reuse its cache. Treat a provider whose weekly usage is close to its ceiling as a last resort. On a retry after a failure, prefer a model at least as strong as the one that failed.",
+          "criteria": {
+            "Haiku via claude-main (llm)": "Short answers and conversation turns.",
+            "GLM via glm (llm)": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight.",
+            "DeepSeek via deepseek (llm)": "Cheap answers and investigation summaries.",
+            "Kimi via kimi (llm)": "Cheap answers and conversation turns, and summaries of long texts; never for changes to the repository.",
+            "Ollama via ollama (llm)": "A small local model: only the shortest answers and conversation turns, when nothing else is available."
+          }
+        },
+        "effort": {
+          "type": "choice",
+          "instructions": "Choose the reasoning effort for this step. Effort follows how hard the step is, not how important the task is. Each option says when that level fits; pick the lowest level that fits the work this step will do. Weigh the duty (answers and conversation need little; implementation, planning and verification are usually high), the size and ambiguity of the task, whether it is UI or visual work, and the attempt number: a retry after a step failed at a lower effort goes higher. When the chosen model does not support the level you pick, the next supported level above it is used.",
+          "criteria": {
+            "low": "Short answers and conversation replies. Never for implementation.",
+            "medium": "Small fixes, documentation and mechanical changes.",
+            "high": "Default for implementation, planning and verification."
+          }
+        }
+      },
+      "expected": {
+        "effort": "low"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "A one-line answer: low effort; the model is left unlabelled because Haiku and the cheap endpoint models are all named for answers."
+    },
+    {
+      "id": "hand-plan-rate-limit",
+      "kind": "placement",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "T9W1BNE",
+          "kind": "feature",
+          "title": "Rate limit the public API",
+          "text": "Limit the public API to 120 requests per minute per API key, with a 429 and a Retry-After header. Admin keys are exempt."
+        },
+        "step": {
+          "instructions": "Write plan.md at the worktree root: the change in one paragraph, the files to touch, the tests to add or change, open questions as needs-decision only if a choice is the owner's.",
+          "attempt": 1,
+          "previous": [],
+          "ordinal": 1,
+          "duty": "plan"
+        },
+        "duty": {
+          "needs": [
+            "repo-read"
+          ],
+          "runtimes": [
+            "claude-sdk",
+            "claude-tmux",
+            "codex"
+          ]
+        },
+        "menu": {
+          "models": [
+            {
+              "id": "claude-opus-5-5",
+              "label": "Opus",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable)."
+            },
+            {
+              "id": "claude-fable-5-1",
+              "label": "Fable",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI."
+            },
+            {
+              "id": "claude-sonnet-5-5",
+              "label": "Sonnet",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Only trivial, mechanical work and short documentation."
+            },
+            {
+              "id": "claude-haiku-5-5",
+              "label": "Haiku",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium"
+              ],
+              "description": "Short answers and conversation turns."
+            },
+            {
+              "id": "gpt-6-astra",
+              "label": "GPT",
+              "provider": "codex",
+              "runtime": "codex",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh"
+              ],
+              "description": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude."
+            },
+            {
+              "id": "glm-5.3",
+              "label": "GLM",
+              "provider": "glm",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+            }
+          ],
+          "providers": [
+            {
+              "name": "claude-main",
+              "weeklyPct": 41,
+              "fiveHourPct": 12,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "codex",
+              "weeklyPct": 18,
+              "fiveHourPct": 4,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "glm",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            }
+          ]
+        },
+        "history": {
+          "recent": []
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "model": {
+          "type": "choice",
+          "instructions": "Choose the model for this step. Read the task, the step's duty and instructions, what the earlier steps of this task reported, the recent history and the owner's rules in the state. Each option names a model, the provider account that would run it and the runtime; its text says what the owner uses that model for. Match the work this step will actually do to those texts, and follow the rules wherever they speak to this kind of work. Prefer the model the previous step of this task used when it fits, because consecutive steps on one model reuse its cache. Treat a provider whose weekly usage is close to its ceiling as a last resort. On a retry after a failure, prefer a model at least as strong as the one that failed.",
+          "criteria": {
+            "Opus via claude-main (claude-sdk)": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable).",
+            "Fable via claude-main (claude-sdk)": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI.",
+            "Sonnet via claude-main (claude-sdk)": "Only trivial, mechanical work and short documentation.",
+            "Haiku via claude-main (claude-sdk)": "Short answers and conversation turns.",
+            "GPT via codex (codex)": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude.",
+            "GLM via glm (claude-sdk)": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+          }
+        },
+        "effort": {
+          "type": "choice",
+          "instructions": "Choose the reasoning effort for this step. Effort follows how hard the step is, not how important the task is. Each option says when that level fits; pick the lowest level that fits the work this step will do. Weigh the duty (answers and conversation need little; implementation, planning and verification are usually high), the size and ambiguity of the task, whether it is UI or visual work, and the attempt number: a retry after a step failed at a lower effort goes higher. When the chosen model does not support the level you pick, the next supported level above it is used.",
+          "criteria": {
+            "low": "Short answers and conversation replies. Never for implementation.",
+            "medium": "Small fixes, documentation and mechanical changes.",
+            "high": "Default for implementation, planning and verification.",
+            "xhigh": "Features across many files, architecture, hard debugging, all UI work on Claude.",
+            "max": "After a step failed at a lower effort, or when the task text asks for the hardest effort."
+          }
+        }
+      },
+      "expected": {
+        "model": "claude-opus-5-5",
+        "effort": "high"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "Planning a contained backend change: Opus is the default for planning, and planning is high."
+    },
+    {
+      "id": "hand-verify-retry-max",
+      "kind": "placement",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "T5CJ0VD",
+          "kind": "bug",
+          "title": "Checkout total ignores the discount code",
+          "text": "Applying a valid discount code shows the reduced total in the cart, but checkout charges the full price."
+        },
+        "step": {
+          "instructions": "Run the project's test command and the browser journey for the affected screen if there is one. Save evidence to .jv-evidence/.",
+          "attempt": 2,
+          "previous": [
+            {
+              "duty": "implement",
+              "status": "done",
+              "summary": "Passed the discount through to createPaymentIntent; added a unit test for the discounted amount."
+            }
+          ],
+          "ordinal": 2,
+          "duty": "verify",
+          "failure": "verify reported testsRun.passed false: the checkout journey still charged 49.00 instead of 39.20; the discount is dropped when the cart is restored from the session."
+        },
+        "duty": {
+          "needs": [
+            "repo-write",
+            "shell",
+            "browser"
+          ],
+          "runtimes": [
+            "claude-sdk",
+            "claude-tmux",
+            "codex"
+          ]
+        },
+        "menu": {
+          "models": [
+            {
+              "id": "claude-opus-5-5",
+              "label": "Opus",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable)."
+            },
+            {
+              "id": "claude-fable-5-1",
+              "label": "Fable",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI."
+            },
+            {
+              "id": "claude-sonnet-5-5",
+              "label": "Sonnet",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Only trivial, mechanical work and short documentation."
+            },
+            {
+              "id": "claude-haiku-5-5",
+              "label": "Haiku",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium"
+              ],
+              "description": "Short answers and conversation turns."
+            },
+            {
+              "id": "gpt-6-astra",
+              "label": "GPT",
+              "provider": "codex",
+              "runtime": "codex",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh"
+              ],
+              "description": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude."
+            },
+            {
+              "id": "glm-5.3",
+              "label": "GLM",
+              "provider": "glm",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+            }
+          ],
+          "providers": [
+            {
+              "name": "claude-main",
+              "weeklyPct": 41,
+              "fiveHourPct": 12,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "codex",
+              "weeklyPct": 18,
+              "fiveHourPct": 4,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "glm",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            }
+          ]
+        },
+        "history": {
+          "recent": [
+            {
+              "duty": "implement",
+              "model": "claude-opus-5-5",
+              "effort": "high",
+              "outcome": "done",
+              "attempts": 1
+            },
+            {
+              "duty": "verify",
+              "model": "claude-opus-5-5",
+              "effort": "high",
+              "outcome": "failed",
+              "attempts": 1
+            }
+          ]
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "model": {
+          "type": "choice",
+          "instructions": "Choose the model for this step. Read the task, the step's duty and instructions, what the earlier steps of this task reported, the recent history and the owner's rules in the state. Each option names a model, the provider account that would run it and the runtime; its text says what the owner uses that model for. Match the work this step will actually do to those texts, and follow the rules wherever they speak to this kind of work. Prefer the model the previous step of this task used when it fits, because consecutive steps on one model reuse its cache. Treat a provider whose weekly usage is close to its ceiling as a last resort. On a retry after a failure, prefer a model at least as strong as the one that failed.",
+          "criteria": {
+            "Opus via claude-main (claude-sdk)": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable).",
+            "Fable via claude-main (claude-sdk)": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI.",
+            "Sonnet via claude-main (claude-sdk)": "Only trivial, mechanical work and short documentation.",
+            "Haiku via claude-main (claude-sdk)": "Short answers and conversation turns.",
+            "GPT via codex (codex)": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude.",
+            "GLM via glm (claude-sdk)": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+          }
+        },
+        "effort": {
+          "type": "choice",
+          "instructions": "Choose the reasoning effort for this step. Effort follows how hard the step is, not how important the task is. Each option says when that level fits; pick the lowest level that fits the work this step will do. Weigh the duty (answers and conversation need little; implementation, planning and verification are usually high), the size and ambiguity of the task, whether it is UI or visual work, and the attempt number: a retry after a step failed at a lower effort goes higher. When the chosen model does not support the level you pick, the next supported level above it is used.",
+          "criteria": {
+            "low": "Short answers and conversation replies. Never for implementation.",
+            "medium": "Small fixes, documentation and mechanical changes.",
+            "high": "Default for implementation, planning and verification.",
+            "xhigh": "Features across many files, architecture, hard debugging, all UI work on Claude.",
+            "max": "After a step failed at a lower effort, or when the task text asks for the hardest effort."
+          }
+        }
+      },
+      "expected": {
+        "model": "claude-opus-5-5",
+        "effort": "max"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "held-out",
+      "note": "Verification again after the step failed at high: the effort guide says max after a failure at a lower effort, and a retry keeps a model at least as strong."
+    },
+    {
+      "id": "hand-readme-typo",
+      "kind": "placement",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "T3ZK7LM",
+          "kind": "single",
+          "title": "Fix the install command in the README",
+          "text": "The README says \"npm instal\" in the install section. Fix it."
+        },
+        "step": {
+          "instructions": "",
+          "attempt": 1,
+          "previous": [],
+          "ordinal": 1,
+          "duty": "document"
+        },
+        "duty": {
+          "needs": [
+            "repo-write"
+          ],
+          "runtimes": [
+            "claude-sdk",
+            "claude-tmux",
+            "codex"
+          ]
+        },
+        "menu": {
+          "models": [
+            {
+              "id": "claude-opus-5-5",
+              "label": "Opus",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable)."
+            },
+            {
+              "id": "claude-fable-5-1",
+              "label": "Fable",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI."
+            },
+            {
+              "id": "claude-sonnet-5-5",
+              "label": "Sonnet",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Only trivial, mechanical work and short documentation."
+            },
+            {
+              "id": "claude-haiku-5-5",
+              "label": "Haiku",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium"
+              ],
+              "description": "Short answers and conversation turns."
+            },
+            {
+              "id": "gpt-6-astra",
+              "label": "GPT",
+              "provider": "codex",
+              "runtime": "codex",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh"
+              ],
+              "description": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude."
+            },
+            {
+              "id": "glm-5.3",
+              "label": "GLM",
+              "provider": "glm",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+            }
+          ],
+          "providers": [
+            {
+              "name": "claude-main",
+              "weeklyPct": 41,
+              "fiveHourPct": 12,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "codex",
+              "weeklyPct": 18,
+              "fiveHourPct": 4,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "glm",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            }
+          ]
+        },
+        "history": {
+          "recent": []
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "model": {
+          "type": "choice",
+          "instructions": "Choose the model for this step. Read the task, the step's duty and instructions, what the earlier steps of this task reported, the recent history and the owner's rules in the state. Each option names a model, the provider account that would run it and the runtime; its text says what the owner uses that model for. Match the work this step will actually do to those texts, and follow the rules wherever they speak to this kind of work. Prefer the model the previous step of this task used when it fits, because consecutive steps on one model reuse its cache. Treat a provider whose weekly usage is close to its ceiling as a last resort. On a retry after a failure, prefer a model at least as strong as the one that failed.",
+          "criteria": {
+            "Opus via claude-main (claude-sdk)": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable).",
+            "Fable via claude-main (claude-sdk)": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI.",
+            "Sonnet via claude-main (claude-sdk)": "Only trivial, mechanical work and short documentation.",
+            "Haiku via claude-main (claude-sdk)": "Short answers and conversation turns.",
+            "GPT via codex (codex)": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude.",
+            "GLM via glm (claude-sdk)": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+          }
+        },
+        "effort": {
+          "type": "choice",
+          "instructions": "Choose the reasoning effort for this step. Effort follows how hard the step is, not how important the task is. Each option says when that level fits; pick the lowest level that fits the work this step will do. Weigh the duty (answers and conversation need little; implementation, planning and verification are usually high), the size and ambiguity of the task, whether it is UI or visual work, and the attempt number: a retry after a step failed at a lower effort goes higher. When the chosen model does not support the level you pick, the next supported level above it is used.",
+          "criteria": {
+            "low": "Short answers and conversation replies. Never for implementation.",
+            "medium": "Small fixes, documentation and mechanical changes.",
+            "high": "Default for implementation, planning and verification.",
+            "xhigh": "Features across many files, architecture, hard debugging, all UI work on Claude.",
+            "max": "After a step failed at a lower effort, or when the task text asks for the hardest effort."
+          }
+        }
+      },
+      "expected": {
+        "effort": "medium"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "A typo in the README: documentation and mechanical changes are medium."
+    },
+    {
+      "id": "hand-provider-headroom",
+      "kind": "placement",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "T8DF4GH",
+          "kind": "bug",
+          "title": "Orders list shows one order twice at page boundaries",
+          "text": "The last order of page 1 appears again as the first order of page 2 when two orders share a created_at."
+        },
+        "step": {
+          "instructions": "Reproduce first with a failing test when the bug is testable, then fix. Commit on the task branch.",
+          "attempt": 1,
+          "previous": [],
+          "ordinal": 1,
+          "duty": "implement"
+        },
+        "duty": {
+          "needs": [
+            "repo-write",
+            "shell"
+          ],
+          "runtimes": [
+            "claude-sdk",
+            "claude-tmux",
+            "codex"
+          ]
+        },
+        "menu": {
+          "models": [
+            {
+              "id": "claude-opus-5-5",
+              "label": "Opus",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable)."
+            },
+            {
+              "id": "claude-fable-5-1",
+              "label": "Fable",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ],
+              "description": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI."
+            },
+            {
+              "id": "claude-sonnet-5-5",
+              "label": "Sonnet",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Only trivial, mechanical work and short documentation."
+            },
+            {
+              "id": "claude-haiku-5-5",
+              "label": "Haiku",
+              "provider": "claude-main",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium"
+              ],
+              "description": "Short answers and conversation turns."
+            },
+            {
+              "id": "gpt-6-astra",
+              "label": "GPT",
+              "provider": "codex",
+              "runtime": "codex",
+              "efforts": [
+                "low",
+                "medium",
+                "high",
+                "xhigh"
+              ],
+              "description": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude."
+            },
+            {
+              "id": "glm-5.3",
+              "label": "GLM",
+              "provider": "glm",
+              "runtime": "claude-sdk",
+              "efforts": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+            }
+          ],
+          "providers": [
+            {
+              "name": "claude-main",
+              "weeklyPct": 86,
+              "fiveHourPct": 41,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "claude-second",
+              "weeklyPct": 22,
+              "fiveHourPct": 5,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "codex",
+              "weeklyPct": 30,
+              "fiveHourPct": 2,
+              "ceilingPct": 90,
+              "observedAt": "2026-11-01T09:12:40.000Z"
+            },
+            {
+              "name": "glm",
+              "weeklyPct": null,
+              "fiveHourPct": null,
+              "ceilingPct": 90,
+              "observedAt": null
+            }
+          ]
+        },
+        "history": {
+          "recent": []
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "model": {
+          "type": "choice",
+          "instructions": "Choose the model for this step. Read the task, the step's duty and instructions, what the earlier steps of this task reported, the recent history and the owner's rules in the state. Each option names a model, the provider account that would run it and the runtime; its text says what the owner uses that model for. Match the work this step will actually do to those texts, and follow the rules wherever they speak to this kind of work. Prefer the model the previous step of this task used when it fits, because consecutive steps on one model reuse its cache. Treat a provider whose weekly usage is close to its ceiling as a last resort. On a retry after a failure, prefer a model at least as strong as the one that failed.",
+          "criteria": {
+            "Opus via claude-main (claude-sdk)": "Strong default for planning, implementation, reviews and all UI work (the owner wants UI on Opus at high or extra high, never on Fable).",
+            "Fable via claude-main (claude-sdk)": "The strongest Claude model: deep architecture, stubborn bugs, the hardest design questions. Uses subscription quota fastest. Not for UI.",
+            "Sonnet via claude-main (claude-sdk)": "Only trivial, mechanical work and short documentation.",
+            "Haiku via claude-main (claude-sdk)": "Short answers and conversation turns.",
+            "GPT via codex (codex)": "Long, well-specified implementation runs; nearly as strong as Fable and its quota lasts about five times longer. An independent reviewer for work written by Claude.",
+            "GLM via glm (claude-sdk)": "Cheap implementation of small, clear changes and mechanical refactors when Claude quota is tight."
+          }
+        },
+        "effort": {
+          "type": "choice",
+          "instructions": "Choose the reasoning effort for this step. Effort follows how hard the step is, not how important the task is. Each option says when that level fits; pick the lowest level that fits the work this step will do. Weigh the duty (answers and conversation need little; implementation, planning and verification are usually high), the size and ambiguity of the task, whether it is UI or visual work, and the attempt number: a retry after a step failed at a lower effort goes higher. When the chosen model does not support the level you pick, the next supported level above it is used.",
+          "criteria": {
+            "low": "Short answers and conversation replies. Never for implementation.",
+            "medium": "Small fixes, documentation and mechanical changes.",
+            "high": "Default for implementation, planning and verification.",
+            "xhigh": "Features across many files, architecture, hard debugging, all UI work on Claude.",
+            "max": "After a step failed at a lower effort, or when the task text asks for the hardest effort."
+          }
+        },
+        "provider": {
+          "type": "choice",
+          "instructions": "Choose the provider account for this step. Respect the owner routing rules. Prefer known usage with headroom below the ceiling in both the weekly and the five-hour window. Earlier options have the better resource rank.",
+          "criteria": {
+            "claude-main": "claude-main: week 86% of 90%, five hours 41%",
+            "claude-second": "claude-second: week 22% of 90%, five hours 5%"
+          }
+        }
+      },
+      "expected": {
+        "provider": "claude-second"
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "held-out",
+      "note": "Opus is served by two accounts and claude-main is above 80% of its ceiling: the provider question goes to claude-second."
+    },
+    {
+      "id": "hand-wf-soft-delete",
+      "kind": "workflow",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "TA1B2C3",
+          "kind": "feature",
+          "title": "Soft delete for customers",
+          "text": "Deleting a customer should hide it instead of removing it: add deleted_at to customers, filter deleted customers out of every list and search, and add a Restore button to the admin customer page."
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "needs_plan": {
+          "type": "noul",
+          "instructions": "Does this task need a written plan before implementation?",
+          "criteria": {
+            "true": "The work spans several parts of the system, changes stored data, or the request is ambiguous.",
+            "false": "A small, clear change that a capable engineer would just do."
+          }
+        },
+        "needs_docs": {
+          "type": "noul",
+          "instructions": "Does this change need documentation written for people?",
+          "criteria": {
+            "true": "It changes how someone runs, configures or uses the project.",
+            "false": "Internal change, tests, or a fix with no user-visible behaviour change."
+          }
+        }
+      },
+      "expected": {
+        "needs_plan": true,
+        "needs_docs": true
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "Stored data changes and an admin screen: a plan, and documentation for the people who use the admin."
+    },
+    {
+      "id": "hand-wf-footer-year",
+      "kind": "workflow",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "TD4E5F6",
+          "kind": "feature",
+          "title": "Footer year from the current date",
+          "text": "The footer says (c) 2025. Compute the year from the current date instead of hard-coding it."
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "needs_plan": {
+          "type": "noul",
+          "instructions": "Does this task need a written plan before implementation?",
+          "criteria": {
+            "true": "The work spans several parts of the system, changes stored data, or the request is ambiguous.",
+            "false": "A small, clear change that a capable engineer would just do."
+          }
+        },
+        "needs_docs": {
+          "type": "noul",
+          "instructions": "Does this change need documentation written for people?",
+          "criteria": {
+            "true": "It changes how someone runs, configures or uses the project.",
+            "false": "Internal change, tests, or a fix with no user-visible behaviour change."
+          }
+        }
+      },
+      "expected": {
+        "needs_plan": false,
+        "needs_docs": false
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "dev",
+      "note": "A one-line internal change: no plan, no documentation."
+    },
+    {
+      "id": "hand-wf-port-flag",
+      "kind": "workflow",
+      "state": {
+        "project": {
+          "name": "shop-web",
+          "guidance": ""
+        },
+        "task": {
+          "parent": null,
+          "visible": false,
+          "id": "TG7H8J9",
+          "kind": "feature",
+          "title": "Configurable server port",
+          "text": "Let the server port be set with a --port flag or the PORT environment variable; the default stays 3000."
+        },
+        "rules": "The owner builds TypeScript and JavaScript web apps and agent platforms.\nEffort follows difficulty, not importance: most implementation, planning and verification are high; routine work is medium; quick answers are low; extra high or max for the hardest design, debugging and UI work, or after a step failed at a lower effort.\nUI, visual work and anything judged by looking goes to Opus at high or extra high. Not Fable: the owner finds it too fast and careless on interfaces.\nLong, well-specified implementation prefers GPT through Codex, especially when Claude quota is tight.\nPrefer staying on the model the previous step used when it fits: consecutive steps on the same model reuse its prompt cache.\nSmall, clear changes need no plan. Plan when the work spans several parts of the system, changes stored data, or the request is ambiguous.\nTests catch problems better than reviews. Review only when the owner's workflow has a review step.\nSonnet almost never. Haiku and the cheap endpoint models for answers and conversation.\nA provider above 80% of its weekly ceiling is a last resort; above the ceiling it is not in the menu."
+      },
+      "questions": {
+        "needs_plan": {
+          "type": "noul",
+          "instructions": "Does this task need a written plan before implementation?",
+          "criteria": {
+            "true": "The work spans several parts of the system, changes stored data, or the request is ambiguous.",
+            "false": "A small, clear change that a capable engineer would just do."
+          }
+        },
+        "needs_docs": {
+          "type": "noul",
+          "instructions": "Does this change need documentation written for people?",
+          "criteria": {
+            "true": "It changes how someone runs, configures or uses the project.",
+            "false": "Internal change, tests, or a fix with no user-visible behaviour change."
+          }
+        }
+      },
+      "expected": {
+        "needs_plan": false,
+        "needs_docs": true
+      },
+      "source": "hand",
+      "decisionId": null,
+      "split": "held-out",
+      "note": "A small, clear change to how the server is run: no plan, but documentation."
+    }
+  ]
+}

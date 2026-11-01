@@ -1,0 +1,11 @@
+[
+  { "query": "You're the Jevellan coordinator for the shop project. The owner just wrote: \"the customers page should say 'No customers yet' with an Import button when the list is empty, and add a test for it\". Set up the jv task for this.", "should_trigger": true },
+  { "query": "jevellan coordinator here, project invoicing-api. New work from the owner: add a CSV export to the invoices list endpoint, same filters as the list. Which workflow do I create it with and what goes in the brief?", "should_trigger": true },
+  { "query": "As the coordinator of blog-engine in Jevellan: the owner wants dark mode that follows the system setting, on every page. Write the jv task create for it.", "should_trigger": true },
+  { "query": "Jevellan coordinator for dashboard-app. Owner: \"I want a settings screen where an admin can rename the workspace\". Draft the task and its brief before you start it.", "should_trigger": true },
+  { "query": "coordinating the crm-tools project with jv. owner wants contacts to get a 'last contacted' date column that sorts. new task please", "should_trigger": true },
+  { "query": "You're the Jevellan coordinator for the shop project. The owner wrote: \"checkout returns a 500 when the cart is empty, since yesterday's release\". Create the task for it.", "should_trigger": false },
+  { "query": "Jevellan coordinator for crm-tools: the owner wants a Playwright script that signs in to the supplier portal every morning and downloads the new invoices. Route it.", "should_trigger": false },
+  { "query": "add an empty state to my React customers list in src/components/Customers.tsx, it should show a message and an import button when the array is empty", "should_trigger": false },
+  { "query": "Coordinator for the shop project in Jevellan: the owner asks where the customers page loads its data from and whether it is cached. Answer or route it.", "should_trigger": false }
+]

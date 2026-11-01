@@ -1,0 +1,4 @@
+[
+  { "query": "Jevellan coordinator for recipes-app. The owner wants tags on recipes that people can filter by on the home page. Kick off the work.", "should_trigger": true, "held_out": true },
+  { "query": "As the coordinator of payments-svc in Jevellan: the owner reports that refunds go out twice when the webhook retries. Get it handled.", "should_trigger": false, "held_out": true }
+]

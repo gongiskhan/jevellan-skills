@@ -1,0 +1,4 @@
+[
+  { "query": "Jevellan coordinator for accounting: the owner wants the monthly VAT return pre-filled on the tax portal from the ledger export, stopping before it is submitted. Kick it off.", "should_trigger": true, "held_out": true },
+  { "query": "As the coordinator of the shop project in Jevellan: the owner says the Playwright tests in CI fail now and then on the cart page and wants them fixed. Get it handled.", "should_trigger": false, "held_out": true }
+]

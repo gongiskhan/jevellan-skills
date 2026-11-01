@@ -1,0 +1,4 @@
+[
+  { "query": "As the coordinator of payments-svc in Jevellan: the owner reports that refunds go out twice when the webhook retries. Get it handled.", "should_trigger": true, "held_out": true },
+  { "query": "Jevellan coordinator for the shop project: the owner wants the order confirmation e-mail to include the expected delivery date. Kick off the work.", "should_trigger": false, "held_out": true }
+]

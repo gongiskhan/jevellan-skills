@@ -1,0 +1,11 @@
+[
+  { "query": "You're the Jevellan coordinator for the shop project. The owner wrote: \"checkout returns a 500 when the cart is empty, since yesterday's release\". Create the task for it.", "should_trigger": true },
+  { "query": "Owner to the Jevellan coordinator of invoicing-api: \"totals are off by one cent on invoices with three or more lines\". You coordinate this project with jv; set up the work.", "should_trigger": true },
+  { "query": "jevellan coordinator for blog-engine: drafts started showing up in the public RSS feed after the last change. owner wants it fixed today. which workflow and what brief?", "should_trigger": true },
+  { "query": "Coordinator of dashboard-app (Jevellan): the owner says sign-in loops back to the login page forever on Safari since Tuesday. Route it with jv.", "should_trigger": true },
+  { "query": "As the Jevellan coordinator for crm-tools: the owner reports that importing a contacts CSV with accented names turns them into question marks. New task, please.", "should_trigger": true },
+  { "query": "You're the Jevellan coordinator for the shop project. The owner just wrote: \"the customers page should say 'No customers yet' with an Import button when the list is empty, and add a test for it\". Set up the jv task for this.", "should_trigger": false },
+  { "query": "my jest test in src/Customers.test.tsx fails with TypeError: Cannot read properties of undefined (reading 'map'). can you fix it?", "should_trigger": false },
+  { "query": "Jevellan coordinator for cache-svc: the owner only wants to understand why the cache sometimes serves stale prices, no change yet. What do you start?", "should_trigger": false },
+  { "query": "Coordinator for ops-tools in Jevellan: the owner wants the weekly timesheet submission on the HR portal automated, with a dry run first. Set it up.", "should_trigger": false }
+]

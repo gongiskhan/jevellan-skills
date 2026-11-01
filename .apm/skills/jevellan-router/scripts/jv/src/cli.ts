@@ -57,7 +57,7 @@ export const COMMANDS: Readonly<Record<string, CommandEntry>> = {
   notes: { module: './commands/notes.js', usage: 'jv notes write --project N < text' },
   evals: { module: './commands/evals.js', usage: 'jv evals route|landing [--since DATE]' },
   usage: { module: './commands/usage.js', usage: 'jv usage [--week W]' },
-  gc: { module: './commands/gc.js', usage: 'jv gc' },
+  gc: { module: './commands/gc.js', booleans: ['dry-run'], usage: 'jv gc [--project N] [--dry-run]' },
   version: { module: './commands/version.js', usage: 'jv --version', internal: true },
 
   bootstrap: { module: './commands/bootstrap.js', usage: 'jv bootstrap', internal: true },

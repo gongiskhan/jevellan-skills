@@ -8,7 +8,9 @@
 // 3. Picks the runtime module by the row's runtime (runtimes/index.ts) and runs start() or resume().
 // 4. Writes the `end` event, then the final state with a reason: done, failed (the runtime's reason), or stopped
 //    (SIGTERM from jv task stop: the turn is aborted and the state stopRun wrote is kept).
-// 5. Calls afterRun(store, sessionId) from advance.ts.
+// 5. Awaits afterRun(store, sessionId) from advance.ts (the next step, retries, landing).
+//
+// A first turn in the task worktree runs the worktree setup command first (git.ts runWorktreeSetup).
 //
 // Exit code: 0 done or stopped, 1 failed, 2 refused (the runtime is not built yet, the row cannot run).
 
@@ -17,6 +19,7 @@ import { afterRun } from './advance.js';
 import { minimalEnvironment } from './env.js';
 import { isJvError, notFound, refused } from './errors.js';
 import { recordEvent } from './events.js';
+import { runWorktreeSetup } from './git.js';
 import { processGroup, runMessage } from './launcher.js';
 import { paths } from './paths.js';
 import { buildSystemAppend, CONTINUE_PROMPT, resumeMessage, START_PROMPT } from './prompt.js';
@@ -154,6 +157,8 @@ export interface RunDeps extends Omit<PrepareOptions, 'store'> {
   handleSignals?: boolean;
   /** Aborts the turn like SIGTERM does. */
   signal?: AbortSignal;
+  /** What runs after the final state is written (default advance.afterRun); awaited before executeRun returns. */
+  afterRun?: (store: Store, sessionId: string) => Promise<void>;
 }
 
 export interface RunOutcome {
@@ -162,6 +167,19 @@ export interface RunOutcome {
   exitCode: number;
 }
 
+/**
+ * Moves the run to `state` unless stopRun already stopped it, in one transaction; a stopped row throws RunStopped.
+ * stopRun writes `stopped` with its reason before it signals the process, so a write of the run that lands between
+ * the two must not turn the row back to starting or running (the owner's reason would be lost).
+ */
+function advanceUnlessStopped(store: Store, sessionId: string, state: SessionState, reason: string, patch?: Parameters<Store['setSessionState']>[3]): void {
+  const moved = store.tx(() => {
+    if (store.requireSession(sessionId).state === 'stopped') return false;
+    store.setSessionState(sessionId, state, reason, patch);
+    return true;
+  });
+  if (!moved) throw new RunStopped();
+}
 
 /** Executes run `sessionId` to its end (what `jv run <R>` does). */
 export async function executeRun(sessionId: string, deps: RunDeps = {}): Promise<RunOutcome> {
@@ -182,10 +200,16 @@ export async function executeRun(sessionId: string, deps: RunDeps = {}): Promise
     if (initial.state !== 'queued' && initial.state !== 'starting') {
       throw refused(`session ${sessionId} is ${initial.state}; a run executes once`);
     }
-    store.setSessionState(sessionId, 'starting', 'jv run is preparing the turn', {
-      pid: process.pid,
-      pgid: processGroup(process.pid) ?? process.pid,
-    });
+    try {
+      advanceUnlessStopped(store, sessionId, 'starting', 'jv run is preparing the turn', {
+        pid: process.pid,
+        pgid: processGroup(process.pid) ?? process.pid,
+      });
+    } catch (error) {
+      if (!(error instanceof RunStopped)) throw error;
+      log(`jv run ${sessionId}: stopped before it started (${store.requireSession(sessionId).state_reason})`);
+      return { session: store.requireSession(sessionId), state: 'stopped', exitCode: 0 };
+    }
     log(`jv run ${sessionId}: ${initial.runtime} ${initial.provider} ${initial.model} ${initial.effort} in ${initial.cwd}`);
 
     let state: SessionState = 'done';
@@ -210,11 +234,14 @@ export async function executeRun(sessionId: string, deps: RunDeps = {}): Promise
         });
       }
       if (controller.signal.aborted) throw new RunStopped();
-      store.setSessionState(sessionId, 'running', `${prepared.session.runtime} turn running`);
+      advanceUnlessStopped(store, sessionId, 'running', `${prepared.session.runtime} turn running`);
       const input: StartInput = { prompt: prepared.prompt, ...prepared.turn, signal: controller.signal };
       if (prepared.resume) {
         await runtime.resume(store.requireSession(sessionId), prepared.prompt, { ...prepared.turn, signal: controller.signal });
       } else {
+        // The worktree's setup command (npm ci and the like) runs once per worktree, before the first turn in it.
+        await runWorktreeSetup(store, store.requireSession(sessionId), { env: prepared.turn.env, signal: controller.signal });
+        if (controller.signal.aborted) throw new RunStopped();
         const started = await runtime.start(store.requireSession(sessionId), input);
         const now = store.requireSession(sessionId);
         const patch = {
@@ -255,7 +282,8 @@ export async function executeRun(sessionId: string, deps: RunDeps = {}): Promise
     if (current.state !== 'stopped') store.setSessionState(sessionId, state, reason);
     log(`jv run ${sessionId}: ${state} (${reason})`);
     try {
-      afterRun(store, sessionId);
+      // Awaited: placing the next step goes through Jev, and the store closes when this function returns.
+      await (deps.afterRun ?? afterRun)(store, sessionId);
     } catch (error) {
       log(`jv run ${sessionId}: afterRun failed: ${error instanceof Error ? error.message : String(error)}`);
     }

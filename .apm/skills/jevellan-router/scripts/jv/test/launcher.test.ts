@@ -163,9 +163,15 @@ test('a run that continues a conversation gets its message and the undelivered t
   assert.equal(input.prompt, 'Continue.\n\nFrom the owner: Use the second option.');
   assert.equal(store.getMessage(message.id)!.delivered_at !== null, true);
   assert.equal(store.getMessage(message.id)!.session_id, run.id);
+  // A progress report continues the same conversation: afterRun creates the continue run with the native id.
+  const next = await waitFor('the continue run', () => store.getSessionByRequestId(`continue:${run.id}`));
+  assert.equal(next.native_session_id, 'native-conv');
   const task = store.requireTask(s.taskId);
-  assert.equal(task.state, 'waiting-owner');
-  assert.equal(task.state_reason, 'progress');
+  assert.equal(task.state, 'running');
+  assert.match(task.state_reason, /progress 1, continuing/);
+  // Its jv run has no runtime in this home; end the row so the lost-run test below sees only its own row.
+  await waitFor('the continue run to have a pid', () => store.getSession(next.id)!.pid ?? undefined);
+  store.setSessionState(next.id, 'stopped', 'test cleanup');
 });
 
 test('a run whose process dies without an end event is lost at read time', async () => {
@@ -213,7 +219,7 @@ test('stopRun ends a running run: SIGTERM to its group, state stopped, end event
   assert.equal(again.signalled, false);
 });
 
-test('a runtime that is not built yet fails the run with exit 2; a failing turn fails it with its reason', async () => {
+test('a runtime that refuses the row fails the run with exit 2; a failing turn fails it with its reason', async () => {
   const s = seedTask(store, home, { name: 'fifth' });
   const saved = process.env.JV_TEST_RUNTIME_MODULE;
   delete process.env.JV_TEST_RUNTIME_MODULE;
@@ -221,7 +227,7 @@ test('a runtime that is not built yet fails the run with exit 2; a failing turn 
   const out = await executeRun(codex.id, { store, handleSignals: false, rulesFile: rules, log: () => {} });
   assert.equal(out.exitCode, 2);
   assert.equal(out.state, 'failed');
-  assert.match(out.session.state_reason, /codex runtime is not available/);
+  assert.match(out.session.state_reason, /the codex runtime runs codex-subscription providers only/);
   assert.equal(store.lastEvent(codex.id, 'end') !== undefined, true);
   assert.equal(store.requireTask(s.taskId).state, 'waiting-owner');
 
@@ -246,6 +252,95 @@ test('a runtime that is not built yet fails the run with exit 2; a failing turn 
   assert.match(failed.session.state_reason, /refused with \[redacted\]/);
   await assert.rejects(() => executeRun(failing.id, { store, handleSignals: false, log: () => {} }), /a run executes once/);
   if (saved !== undefined) process.env.JV_TEST_RUNTIME_MODULE = saved;
+});
+
+test('jv run runs the worktree setup once before a first turn and awaits afterRun before it returns', async () => {
+  const { mkdirSync, writeFileSync } = await import('node:fs');
+  const { writeReport } = await import('../src/report.js');
+  const { paths } = await import('../src/paths.js');
+  const s = seedTask(store, home, { name: 'setup', kind: 'feature', duties: ['investigate', 'implement'] });
+  store.updateTask(s.taskId, { worktree_path: s.repo, branch: 'jv/setup-x' });
+  mkdirSync(paths.projectDir(s.projectName), { recursive: true });
+  writeFileSync(paths.projectJson(s.projectName), JSON.stringify({ setupCommand: 'echo ran >> setup.log' }));
+  let starts = 0;
+  const fake = (status: 'done' | 'needs-decision') => async () => ({
+    start: async (session: { id: string }) => {
+      starts++;
+      assert.equal(readFileSync(join(s.repo, 'setup.log'), 'utf8'), 'ran\n', 'the setup ran before the turn');
+      writeReport(store, session.id, status === 'done' ? { status, summary: 'Found it.' } : { status, summary: 'Which?', question: 'Which one?', options: [{ label: 'a' }, { label: 'b' }] });
+      return { pid: process.pid, pgid: process.pid };
+    },
+    resume: async () => {},
+    stop: async () => {},
+    tail: async function* () {},
+  });
+  const make = (stepId: string, key: string) =>
+    launcher.createRun(store, { requestId: `req-setup-${key}`, projectId: s.projectId, taskId: s.taskId, stepId, runtime: 'claude-sdk', provider: 'claude-main', model: 'model-strong', effort: 'high', cwd: s.repo }).row;
+  store.setStepState(s.stepIds[0]!, 'running', 'test');
+  store.setTaskState(s.taskId, 'running', 'test');
+  const first = make(s.stepIds[0]!, 'one');
+  let advanced = false;
+  const slowAfterRun = async (st: typeof store, id: string) => {
+    await new Promise((r) => setTimeout(r, 100));
+    advanced = st.getSession(id)!.state === 'done';
+  };
+  const out = await executeRun(first.id, { store, handleSignals: false, rulesFile: rules, log: () => {}, loadRuntime: fake('done'), afterRun: slowAfterRun });
+  assert.equal(out.state, 'done', out.session.state_reason);
+  assert.equal(advanced, true, 'executeRun returned only after afterRun finished');
+  assert.equal(starts, 1);
+  const rec = JSON.parse(store.getMeta(`worktree_setup:${s.taskId}`)!) as { status: string; command: string };
+  assert.deepEqual([rec.status, rec.command], ['ok', 'echo ran >> setup.log']);
+  assert.ok(store.listEvents(first.id).some((e) => e.kind === 'tool-result' && e.payload.includes('worktree-setup')));
+
+  // A later first turn in the same worktree does not run the setup again.
+  store.setStepState(s.stepIds[1]!, 'running', 'test');
+  const next = make(s.stepIds[1]!, 'two');
+  await executeRun(next.id, { store, handleSignals: false, rulesFile: rules, log: () => {}, loadRuntime: fake('needs-decision') });
+  assert.equal(readFileSync(join(s.repo, 'setup.log'), 'utf8'), 'ran\n');
+  assert.equal(starts, 2);
+
+  // A failing setup fails the run with exit 2 before the runtime starts; the next run tries again.
+  const t = seedTask(store, home, { name: 'setup-fail', kind: 'single' });
+  store.updateTask(t.taskId, { worktree_path: t.repo, branch: 'jv/setup-fail-x' });
+  mkdirSync(paths.projectDir(t.projectName), { recursive: true });
+  writeFileSync(paths.projectJson(t.projectName), JSON.stringify({ setupCommand: 'echo broken; exit 3' }));
+  const bad = launcher.createRun(store, { requestId: 'req-setup-bad', projectId: t.projectId, taskId: t.taskId, stepId: t.stepIds[0]!, runtime: 'claude-sdk', provider: 'claude-main', model: 'model-strong', effort: 'high', cwd: t.repo }).row;
+  const before = starts;
+  const failed = await executeRun(bad.id, { store, handleSignals: false, rulesFile: rules, log: () => {}, loadRuntime: fake('done') });
+  assert.equal(failed.exitCode, 2);
+  assert.equal(failed.state, 'failed');
+  assert.match(failed.session.state_reason, /worktree setup failed: echo broken; exit 3 exited 3/);
+  assert.equal(starts, before);
+  assert.equal((JSON.parse(store.getMeta(`worktree_setup:${t.taskId}`)!) as { status: string }).status, 'failed');
+});
+
+test('a stop written while the run prepares its turn keeps the owner\'s reason; the runtime never starts', async () => {
+  const s = seedTask(store, home, { name: 'stop-race', kind: 'single' });
+  store.setStepState(s.stepIds[0]!, 'running', 'test');
+  store.setTaskState(s.taskId, 'running', 'test');
+  const row = launcher.createRun(store, { requestId: 'req-stop-race', projectId: s.projectId, taskId: s.taskId, stepId: s.stepIds[0]!, runtime: 'claude-sdk', provider: 'claude-main', model: 'model-strong', effort: 'high', cwd: s.repo }).row;
+  let started = false;
+  // stopRun writes `stopped` and its reason first and signals afterwards; here the write lands while the run loads its
+  // runtime, before any signal reaches it (what `jv task override --undo` right after `jv task create` hits).
+  const loadRuntime = async () => {
+    store.setSessionState(row.id, 'stopped', 'overridden by the owner: model-small low');
+    return {
+      start: async () => {
+        started = true;
+        return { pid: process.pid, pgid: process.pid };
+      },
+      resume: async () => {},
+      stop: async () => {},
+      tail: async function* () {},
+    };
+  };
+  const out = await executeRun(row.id, { store, handleSignals: false, rulesFile: rules, log: () => {}, loadRuntime, afterRun: async () => {} });
+  assert.equal(started, false);
+  assert.equal(out.state, 'stopped');
+  assert.equal(store.getSession(row.id)!.state, 'stopped');
+  assert.equal(store.getSession(row.id)!.state_reason, 'overridden by the owner: model-small low');
+  const end = store.listEvents(row.id).find((e) => e.kind === 'end')!;
+  assert.equal(JSON.parse(end.payload).reason, 'overridden by the owner: model-small low');
 });
 
 test('jv tail and jv report read a finished run (text and --json)', async () => {

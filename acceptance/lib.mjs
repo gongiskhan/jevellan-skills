@@ -132,3 +132,61 @@ export function sleep(ms) {
 export function stamp() {
   return new Date().toISOString().replace(/[-:.]/g, '').replace('T', 't').replace('Z', 'z');
 }
+
+/**
+ * The disposable clone of the sandbox that phases 4 and 5 land into (never the real sandbox): JV_ACCEPT_CLONE, and
+ * its jv project name JV_ACCEPT_PROJECT (default sandbox-clone). The scripts refuse to run without the clone.
+ */
+export const CLONE = process.env.JV_ACCEPT_CLONE || '';
+export const CLONE_PROJECT = process.env.JV_ACCEPT_PROJECT || 'sandbox-clone';
+/** The real sandbox's main before any acceptance run: landing must never move it. */
+export const SANDBOX_MAIN = '61fc71abcf86d4cd14a127bb47ff473fddece17b';
+
+/** Runs jv with --json appended; exits are data, not exceptions. */
+export function jvJson(args, options = {}) {
+  return jv([...args, '--json'], options);
+}
+
+/** Polls fn every intervalMs until it returns a value other than undefined/false, or the timeout passes (undefined). */
+export async function waitFor(fn, { timeoutMs, intervalMs = 5000, onTick } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const v = await fn();
+    if (v !== undefined && v !== false && v !== null) return v;
+    if (Date.now() > deadline) return undefined;
+    if (onTick) onTick();
+    await sleep(intervalMs);
+  }
+}
+
+/** One query against a fresh read-only store connection. */
+export function query(sql, ...params) {
+  const db = readStore();
+  try {
+    return db.prepare(sql).all(...params);
+  } finally {
+    db.close();
+  }
+}
+
+export function queryOne(sql, ...params) {
+  return query(sql, ...params)[0];
+}
+
+export function taskByRequest(requestId) {
+  return queryOne('SELECT * FROM tasks WHERE request_id = ?', requestId);
+}
+
+export function log(line) {
+  process.stdout.write(`${new Date().toISOString()} ${line}\n`);
+}
+
+/** Whether `commit` is on `branch` of `repo`. */
+export function onBranch(repo, commit, branch) {
+  return spawnSync('git', ['-C', repo, 'merge-base', '--is-ancestor', commit, branch]).status === 0;
+}
+
+/** Live (queued, starting, running) step sessions of a task. */
+export function liveSessions(taskId) {
+  return query("SELECT * FROM sessions WHERE task_id = ? AND kind = 'step' AND state IN ('queued','starting','running') ORDER BY started_at", taskId);
+}

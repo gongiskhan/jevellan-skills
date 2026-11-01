@@ -60,13 +60,31 @@ test('the table has every command of section 3 and the internal ones', () => {
   assert.equal(COMMANDS.project!.module, './project.js');
 });
 
-test('a command this build does not have exits 2 with the standard message', () => {
-  const r = jv('gc');
-  assert.equal(r.code, 2);
-  assert.match(r.stderr, /jv gc is not available in this build/);
-  const j = jv('gc', '--json');
-  assert.equal(j.code, 2);
-  assert.deepEqual(JSON.parse(j.stdout), { error: 'jv gc is not available in this build', exitCode: 2 });
+test('a command this build does not have exits 2 with the standard message', async () => {
+  // Every command of the table is built now, so the test adds an entry whose module does not exist.
+  const { main, commandModuleFile } = await import('../src/cli.js');
+  const entry = { module: './commands/not-built.js', usage: 'jv not-built' };
+  assert.equal(commandModuleFile(entry), undefined);
+  (COMMANDS as Record<string, typeof entry>)['not-built'] = entry;
+  const out: string[] = [];
+  const err: string[] = [];
+  const write = { out: process.stdout.write, err: process.stderr.write };
+  process.stdout.write = ((chunk: string) => (out.push(String(chunk)), true)) as typeof process.stdout.write;
+  process.stderr.write = ((chunk: string) => (err.push(String(chunk)), true)) as typeof process.stderr.write;
+  let code: number;
+  let jsonCode: number;
+  try {
+    code = await main(['not-built']);
+    jsonCode = await main(['not-built', '--json']);
+  } finally {
+    process.stdout.write = write.out;
+    process.stderr.write = write.err;
+    delete (COMMANDS as Record<string, unknown>)['not-built'];
+  }
+  assert.equal(code, 2);
+  assert.match(err.join(''), /jv not-built is not available in this build/);
+  assert.equal(jsonCode, 2);
+  assert.deepEqual(JSON.parse(out.join('')), { error: 'jv not-built is not available in this build', exitCode: 2 });
 });
 
 test('an unknown command exits 2', () => {

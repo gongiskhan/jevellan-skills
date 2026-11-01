@@ -91,3 +91,16 @@ repository with `.claude/` gitignored (`apm install ../pkg --target claude`), an
   status`, which printed "Logged in using ChatGPT" for it. `account/rateLimits/read` goes to the server and answers
   that fake login with error -32603 "... 401 Unauthorized ... Please try signing in again". For jv's real Codex home
   it answers the `codex` limit with one weekly window (10080 minutes) and no five-hour window.
+
+## 2026-11-01 First real claude-sdk turn and placement (acceptance phases 2 and 3)
+
+- A `single` investigate step on the sandbox, run by `jv run` through agent SDK 0.3.316 on `claude-main`,
+  `claude-sonnet-5-5` effort `low`, read-only (`dontAsk`, D-026), ended in about 20 seconds with one `jv_report`
+  call through the in-process MCP server (`mcp__jv__jv_report`), status done. The tools it called were Glob, Grep,
+  Read and the report tool only. The `system/init` session id was on the row before the first text event, and the
+  native transcript is `<provider home>/.claude/projects/<cwd with every non-alphanumeric character as "-">/<id>.jsonl`.
+  The result's `modelUsage` carried input, output, cache read and cache write tokens and a cost.
+- No key file value appeared in the store, its WAL or the run log (`grep -F -f` per key file, patterns on stdin).
+- `placeStep` for the same step against the real Jev (`jev-latest`, answered as `jev-1.14.0`) took two calls
+  (model and effort, then provider between claude-main and claude-second) in about 350 ms and 2937 input tokens. With
+  `jev.keyFile` pointing at a missing file it exits 2 with "Jev: no key configured" and writes no decisions row.

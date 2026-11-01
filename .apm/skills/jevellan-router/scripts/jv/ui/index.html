@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f6f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101112" media="(prefers-color-scheme: dark)">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>jv</title>
+<link rel="icon" href="/ui/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/app.css">
+<script type="module" src="/ui/app.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">jv</span><span class="brand-name">Jevellan</span></a>
+    <nav class="nav" aria-label="Pages">
+      <a href="/" data-nav="tasks">Tasks</a>
+      <a href="/decisions" data-nav="decisions">Decisions</a>
+      <a href="/usage" data-nav="usage">Usage</a>
+    </nav>
+    <span class="live" id="live" data-state="connecting" role="status">Connecting</span>
+  </div>
+</header>
+<main id="main"><p class="muted">Loading</p></main>
+<footer id="foot">Read-only view of the jv store.</footer>
+<noscript><main><p class="notice">The viewer needs JavaScript to read the store.</p></main></noscript>
+</body>
+</html>

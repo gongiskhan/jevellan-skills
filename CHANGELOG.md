@@ -60,6 +60,8 @@ own session placed by Jev, and one SQLite store holds every session, event, repo
 - `jv land`: Jev routes a finished task to land, verify-then-land or ask-owner using `landing.json` risky paths and
   checks; landing merges the default branch in, runs the checks and fast-forwards. Child tasks land into their
   parent's branch. One landing at a time per project.
+- "Land now" on a landing that conflicts adds one step that resolves the merge, then lands; a closed landing question
+  keeps why it was asked. A `single` task whose step committed lands like the others.
 - `jv gc` archives worktrees of finished tasks; nothing is deleted.
 
 ### Coordinator
@@ -88,6 +90,12 @@ own session placed by Jev, and one SQLite store holds every session, event, repo
   `evals/run.mjs` replays the current policy through Jev, writes `evals/RESULTS.md` and fails below the threshold.
 - The `jv-eval-runner` frontmatter lets Skillio use a policy's own runner (Skillio pull request 2).
 - Trigger cases for the workflow skills and output cases for the coordinator skill.
+- The cases exported from the acceptance run: 53 router cases (held-out agreement 94%) and 5 landing cases (16/16).
+
+### Acceptance
+
+- `acceptance/j01-install.mjs` to `j17-no-leaks.mjs`: the 17 journeys of the build brief against a real sandbox
+  project, from an APM install from GitHub to the leak search; all 17 pass (283 checks, `acceptance/RESULTS.md`).
 
 ### Known gaps
 

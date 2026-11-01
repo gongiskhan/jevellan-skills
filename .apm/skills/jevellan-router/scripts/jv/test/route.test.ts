@@ -215,6 +215,9 @@ describe('mapEffort and duties', () => {
     assert.equal(R.impliedRuntime('claude-endpoint', ['claude-sdk', 'claude-tmux', 'codex'], true), 'claude-tmux');
     assert.equal(R.impliedRuntime('codex-subscription', ['claude-sdk', 'claude-tmux', 'codex'], true), 'codex');
     assert.equal(R.impliedRuntime('claude-subscription', ['llm'], true), 'llm');
+    assert.deepEqual(R.placementRuntimes(['claude-sdk', 'claude-tmux', 'codex'], true), ['claude-sdk', 'claude-tmux']);
+    assert.deepEqual(R.placementRuntimes(['claude-sdk', 'claude-tmux', 'codex'], false), ['claude-sdk', 'claude-tmux', 'codex']);
+    assert.deepEqual(R.placementRuntimes(['llm'], true), ['llm']);
     assert.deepEqual(R.loadDutyNeeds('implement'), ['repo-write', 'shell']);
     assert.throws(() => R.loadDutyNeeds('dance'), refusedWith('no duty dance'));
   });
@@ -336,6 +339,9 @@ describe('placement', () => {
     assert.equal(placed.runtime, 'claude-tmux');
     assert.equal(placed.effort, 'medium');
     assert.ok(Object.keys(seen[0]!.questions.model!.criteria).includes('Opus via claude-main (claude-tmux)'));
+    // Visible means a tmux window to watch: Codex (SDK, no window) is not offered, and the state says so.
+    assert.ok(!Object.keys(seen[0]!.questions.model!.criteria).some((k) => k.endsWith('(codex)')), Object.keys(seen[0]!.questions.model!.criteria).join(', '));
+    assert.deepEqual(JSON.parse(seen[0]!.state).duty.runtimes, ['claude-sdk', 'claude-tmux']);
   });
 
   test('answer runs on llm: openai-compatible providers join, Codex leaves', async () => {

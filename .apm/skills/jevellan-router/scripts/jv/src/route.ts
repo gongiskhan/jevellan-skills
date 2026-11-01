@@ -113,6 +113,15 @@ export function loadDutyNeeds(duty: string, file: string = paths.skillFile(`jeve
 }
 
 /**
+ * The runtimes a placement may use: a visible step is watched in tmux (section 6.2), so of the agent runtimes only
+ * claude-tmux (Claude kinds) is left; Codex runs through its SDK and has no window to watch. llm duties are unchanged.
+ */
+export function placementRuntimes(runtimes: readonly Runtime[], visible: boolean): Runtime[] {
+  if (!visible || !runtimes.includes('claude-tmux')) return [...runtimes];
+  return runtimes.filter((r) => r !== 'codex');
+}
+
+/**
  * Provider kinds that can run any of the runtimes. llm runs on openai-compatible providers (chat/completions) and on
  * Claude kinds (one claude-sdk turn with no tools, section 6.5); the agent runtimes on Claude kinds and Codex.
  */
@@ -945,8 +954,8 @@ export function placementContext(input: PlaceStepInput): {
   const policy = input.policy ?? loadRouterPolicy();
   const providers = input.providers ?? loadProviders();
   const needs = input.needs ?? loadDutyNeeds(step.duty);
-  const runtimes = dutyRuntimes(step.duty, needs);
   const visible = input.visible ?? task.visible === 1;
+  const runtimes = placementRuntimes(dutyRuntimes(step.duty, needs), visible);
   const menu = buildMenu({
     providers,
     usage: latestUsage(store, providers),

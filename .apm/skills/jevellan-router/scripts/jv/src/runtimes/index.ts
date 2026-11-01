@@ -1,5 +1,4 @@
-// Picks the runtime module by the session row's `runtime` (section 6). claude-sdk is built; claude-tmux, codex and
-// llm arrive in phase 7, and until then a run on them is refused (exit 2) with that reason.
+// Picks the runtime module by the session row's `runtime` (section 6): claude-sdk, claude-tmux, codex and llm.
 //
 // Test hook: JV_TEST_RUNTIME_MODULE names a module file that replaces every runtime. It exists only so the launcher
 // tests can run a detached `jv run` against a fake runtime with no model; nothing else sets it.
@@ -11,6 +10,9 @@ import type { RuntimeModule } from './types.js';
 
 const BUILT: Partial<Record<Runtime, string>> = {
   'claude-sdk': './claude-sdk.js',
+  'claude-tmux': './claude-tmux.js',
+  codex: './codex.js',
+  llm: './llm.js',
 };
 
 function asModule(mod: Partial<RuntimeModule>, name: string): RuntimeModule {

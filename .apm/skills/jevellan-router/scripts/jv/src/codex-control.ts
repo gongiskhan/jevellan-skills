@@ -246,3 +246,50 @@ export async function probeCodex(options: CodexControlOptions): Promise<CodexPro
     await control.close();
   }
 }
+
+// ---- model/list: ported from jevellan runtimes/codex/src/control.ts at 8e2788ec (listCodexModels) ----------------
+
+const ModelListSchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      model: z.string(),
+      displayName: z.string(),
+      hidden: z.boolean(),
+      isDefault: z.boolean(),
+      supportedReasoningEfforts: z.array(z.object({ reasoningEffort: z.string() })),
+    }),
+  ),
+  nextCursor: z.string().nullable(),
+});
+
+const CODEX_EFFORTS = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+
+export interface CodexOfferedModel {
+  id: string;
+  label: string;
+  efforts: string[];
+}
+
+/** The models a Codex login offers (model/list, every page), the default first; hidden models and models without efforts are left out. */
+export async function listCodexModels(options: CodexControlOptions): Promise<CodexOfferedModel[]> {
+  const control = await CodexControl.open(options);
+  try {
+    let cursor: string | null = null;
+    const models: Array<CodexOfferedModel & { isDefault: boolean }> = [];
+    for (let page = 0; page < 20; page++) {
+      const response = ModelListSchema.parse(await control.request('model/list', { cursor, limit: 100, includeHidden: false }));
+      for (const m of response.data) {
+        const efforts = m.supportedReasoningEfforts.map((e) => e.reasoningEffort).filter((e) => CODEX_EFFORTS.includes(e));
+        if (!m.hidden && efforts.length) models.push({ id: m.model, label: m.displayName, efforts, isDefault: m.isDefault });
+      }
+      cursor = response.nextCursor;
+      if (!cursor) {
+        return models.sort((a, b) => Number(b.isDefault) - Number(a.isDefault)).map(({ id, label, efforts }) => ({ id, label, efforts }));
+      }
+    }
+    throw new CodexControlError('Codex model pagination exceeded its limit.');
+  } finally {
+    await control.close();
+  }
+}
